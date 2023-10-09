@@ -15,6 +15,7 @@ defmodule Tdex.Connection do
       {:ok, List.flatten(data)}
     else
       {:ok, dateBlock} = fetch_block(pid, dataQuery["id"])
+      IO.inspect(Base.encode16(dateBlock))
       result = parse_block(dateBlock, dataQuery["fields_names"])
       read_row(pid, dataQuery, [result|data])
     end
@@ -26,6 +27,7 @@ defmodule Tdex.Connection do
         {rest1, rest2, [%{type: type, size: size, block_size: blockSize, name: name}|acc]}
       end)
     bitMapSize = Bitwise.bsr(rows + 7, 3)
+    IO.inspect(headers)
     parse_entry(Enum.reverse(headers), rows, bitMapSize, data, [])
       |> List.zip()
       |> Enum.map(fn x -> Enum.zip(fieldNames, Tuple.to_list(x)) end)
@@ -33,11 +35,17 @@ defmodule Tdex.Connection do
   end
 
   def parse_entry([], _, _, <<>>, acc), do: Enum.reverse(acc)
-  def parse_entry([%{type: type, block_size: blockSize}|fields], rows, bitMapSize, data, acc) when type in [8, 10] do
-    <<_::binary-size(4*rows), data::binary-size(blockSize), bin::binary>> = data
-    cols = parse_list(data, type, [])
+   def parse_entry([%{type: type, block_size: blockSize}|fields], rows, bitMapSize, data, acc) when type in [8, 10, 15] do
+    <<offsets::binary-size(4*rows), data::binary-size(blockSize), bin::binary>> = data
+    cols = parse_list1(offsets, data, type, [])
     parse_entry(fields, rows, bitMapSize, bin, [cols|acc])
   end
+  # def parse_entry([%{type: type, block_size: blockSize}|fields], rows, bitMapSize, data, acc) when type in [8, 10, 15] do
+  #   <<_::binary-size(4*rows), data::binary-size(blockSize), bin::binary>> = data
+  #   IO.puts("check null: #{type} #{blockSize} #{inspect(data)}")
+  #   cols = parse_list(data, type, [])
+  #   parse_entry(fields, rows, bitMapSize, bin, [cols|acc])
+  # end
   @spec parse_entry(
           [%{:block_size => non_neg_integer, :type => any, optional(any) => any}],
           integer,
@@ -55,6 +63,17 @@ defmodule Tdex.Connection do
   def parse_list(bin, type, acc) do
     {v, rest} = parse_type(type, bin)
     parse_list(rest, type, [v|acc])
+  end
+
+  def parse_list1(<<>>, <<>>, _type, acc), do: Enum.reverse(acc)
+  def parse_list1(offsets, bin, type, acc) do
+    <<offset::32-signed, offsets1::binary>> = offsets
+    if offset == -1 do
+      parse_list1(offsets1, bin, type, [nil|acc])
+    else
+      {v, rest} = parse_type(type, bin)
+      parse_list(rest, type, [v|acc])
+    end
   end
 
   def parse_type(1, <<v::8-little, rest::binary>>), do: {v==1, rest}
@@ -78,7 +97,8 @@ defmodule Tdex.Connection do
   def parse_type(13, <<v::32-unsigned-little, rest::binary>>), do: {v, rest}
   def parse_type(14, <<v::64-unsigned-little, rest::binary>>), do: {v, rest}
   def parse_type(15, bin) do
-    parse_type(8, bin)
+    <<len::16-little, v::binary-size(len), rest::binary>> = bin
+    {Jason.decode!(v), rest}
   end
 
   def new_connect_ws(host, port) do

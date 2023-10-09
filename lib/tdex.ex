@@ -29,8 +29,17 @@ defmodule Tdex do
 
   def handle_call({:query, statement}, _from, state) do
     {:ok, dataQuery} = Tdex.Connection.query(state.pidWS, statement)
-    {:ok, result} = Tdex.Connection.read_row(state.pidWS, dataQuery, [])
-    IO.inspect({length(result)})
+
+    result = if dataQuery["code"] != 0 do
+      %{code: dataQuery["code"], message: dataQuery["message"]}
+    else
+      if dataQuery["fields_lengths"] do
+        {:ok, data} = Tdex.Connection.read_row(state.pidWS, dataQuery, [])
+        %{code: dataQuery["code"], rows: data, message: dataQuery["message"]}
+      else
+        %{code: dataQuery["code"], affected_rows: dataQuery["affected_rows"], message: dataQuery["message"]}
+      end
+    end
     {:reply, result, state}
   end
 

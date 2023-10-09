@@ -12,12 +12,6 @@ defmodule Tdex.Ets do
   end
 
   def get_req_id(name_table) do
-    id = case :ets.lookup(name_table, @req_id) do
-      [] ->
-        :ets.insert(name_table, {@req_id, 0})
-        0
-      _  -> :ets.update_counter(name_table, @req_id, 1)
-    end
-    id
+    :ets.update_counter(name_table, @req_id, {2, 1}, {@req_id, 0})
   end
 end
