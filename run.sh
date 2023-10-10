@@ -1,6 +1,6 @@
 #!/bin/bash
 
-app=tickdata
+app=tdex
 uuid=$(cat /dev/urandom | tr -dc 'a-z' | fold -w 5 | head -n 1)
 case $1 in
 remote)

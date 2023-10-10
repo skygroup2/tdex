@@ -14,7 +14,13 @@ defmodule Tdex.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [
+        :logger,
+        :runtime_tools,
+        :observer_cli,
+        :observer,
+        :wx
+      ]
     ]
   end
 
@@ -23,7 +29,9 @@ defmodule Tdex.MixProject do
     [
       # {:dep_from_hexpm, "~> 0.3.0"},
       {:gun, git: "git@github.com:skygroup2/gun.git", branch: "master"},
-      {:jason, "~> 1.4"}
+      {:jason, "~> 1.4"},
+      {:db_connection, "~> 2.1"},
+      {:observer_cli, "~> 1.7"}
     ]
   end
 end

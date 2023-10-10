@@ -1,5 +1,5 @@
 defmodule Tdex.Connection do
-  import Tdex.Ets
+  import Tdex.{Ets, Binary}
 
   def recv_ws() do
     receive do
@@ -19,86 +19,6 @@ defmodule Tdex.Connection do
       result = parse_block(dateBlock, dataQuery["fields_names"])
       read_row(pid, dataQuery, [result|data])
     end
-  end
-
-  def parse_block(<<_::binary-size(20), _len::32-little, rows::32-little, cols::32-little, _::binary-size(12), fields::binary-size(5*cols), blockSize::binary-size(cols*4), data::binary>>, fieldNames) do
-    {"", "", headers} =
-      Enum.reduce(fieldNames, {fields, blockSize, []}, fn name, {<<type, size::32-little, rest1::binary>>, <<blockSize::32-little, rest2::binary>>, acc} ->
-        {rest1, rest2, [%{type: type, size: size, block_size: blockSize, name: name}|acc]}
-      end)
-    bitMapSize = Bitwise.bsr(rows + 7, 3)
-    IO.inspect(headers)
-    parse_entry(Enum.reverse(headers), rows, bitMapSize, data, [])
-      |> List.zip()
-      |> Enum.map(fn x -> Enum.zip(fieldNames, Tuple.to_list(x)) end)
-      |> Enum.map(fn x -> Map.new(x) end)
-  end
-
-  def parse_entry([], _, _, <<>>, acc), do: Enum.reverse(acc)
-   def parse_entry([%{type: type, block_size: blockSize}|fields], rows, bitMapSize, data, acc) when type in [8, 10, 15] do
-    <<offsets::binary-size(4*rows), data::binary-size(blockSize), bin::binary>> = data
-    cols = parse_list1(offsets, data, type, [])
-    parse_entry(fields, rows, bitMapSize, bin, [cols|acc])
-  end
-  # def parse_entry([%{type: type, block_size: blockSize}|fields], rows, bitMapSize, data, acc) when type in [8, 10, 15] do
-  #   <<_::binary-size(4*rows), data::binary-size(blockSize), bin::binary>> = data
-  #   IO.puts("check null: #{type} #{blockSize} #{inspect(data)}")
-  #   cols = parse_list(data, type, [])
-  #   parse_entry(fields, rows, bitMapSize, bin, [cols|acc])
-  # end
-  @spec parse_entry(
-          [%{:block_size => non_neg_integer, :type => any, optional(any) => any}],
-          integer,
-          any,
-          binary,
-          any
-        ) :: list
-  def parse_entry([%{type: type, block_size: blockSize}|fields], rows, bitMapSize, data, acc) do
-    <<_::binary-size(bitMapSize), data::binary-size(blockSize), bin::binary>> = data
-    cols = parse_list(data, type, [])
-    parse_entry(fields, rows, bitMapSize, bin, [cols|acc])
-  end
-
-  def parse_list(<<>>, _type, acc), do: Enum.reverse(acc)
-  def parse_list(bin, type, acc) do
-    {v, rest} = parse_type(type, bin)
-    parse_list(rest, type, [v|acc])
-  end
-
-  def parse_list1(<<>>, <<>>, _type, acc), do: Enum.reverse(acc)
-  def parse_list1(offsets, bin, type, acc) do
-    <<offset::32-signed, offsets1::binary>> = offsets
-    if offset == -1 do
-      parse_list1(offsets1, bin, type, [nil|acc])
-    else
-      {v, rest} = parse_type(type, bin)
-      parse_list(rest, type, [v|acc])
-    end
-  end
-
-  def parse_type(1, <<v::8-little, rest::binary>>), do: {v==1, rest}
-  def parse_type(2, <<v::8-little, rest::binary>>), do: {v, rest}
-  def parse_type(3, <<v::16-little, rest::binary>>), do: {v, rest}
-  def parse_type(4, <<v::32-little, rest::binary>>), do: {v, rest}
-  def parse_type(5, <<v::64-little, rest::binary>>), do: {v, rest}
-  def parse_type(6, <<v::64-float-little, rest::binary>>), do: {v, rest}
-  def parse_type(7, <<v::64-float-little, rest::binary>>), do: {v, rest}
-  def parse_type(8, bin) do
-    <<len::16-little, v::binary-size(len), rest::binary>> = bin
-    {v, rest}
-  end
-  def parse_type(9, <<v::64-little, rest::binary>>), do: {DateTime.from_unix!(v, :millisecond), rest}
-  def parse_type(10, bin) do
-    <<len::16-little, v::binary-size(len), rest::binary>> = bin
-    {:unicode.characters_to_binary(v, {:utf32, :little}, :utf8), rest}
-  end
-  def parse_type(11, <<v::8-unsigned-little, rest::binary>>), do: {v, rest}
-  def parse_type(12, <<v::16-unsigned-little, rest::binary>>), do: {v, rest}
-  def parse_type(13, <<v::32-unsigned-little, rest::binary>>), do: {v, rest}
-  def parse_type(14, <<v::64-unsigned-little, rest::binary>>), do: {v, rest}
-  def parse_type(15, bin) do
-    <<len::16-little, v::binary-size(len), rest::binary>> = bin
-    {Jason.decode!(v), rest}
   end
 
   def new_connect_ws(host, port) do
