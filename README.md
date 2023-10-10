@@ -16,22 +16,7 @@ end
 ```
 
 ```elixir
-c("taos.ex")
-{ ok, connect } = Wrapper.Taos.taos_connect('localhost', 'root', 'taosdata', 'test', 6030)
-
-Wrapper.Taos.taos_select_db(connect, 'test')
-
-{ ok, res } = Wrapper.Taos.taos_query(connect, 'SELECT * FROM tick LIMIT 10')
-
-Wrapper.Taos.taos_errstr(res)
-Wrapper.Taos.taos_errno(res)
-
-{ok ,num_fields} = Wrapper.Taos.taos_field_count(res)
-
-{ok ,field} = Wrapper.Taos.taos_fetch_fields(res)
-{ok, row} = Wrapper.Taos.taos_fetch_row(res)
-
-Wrapper.Taos.taos_print_row('', row, field, num_fields)
-Wrapper.Taos.taos_close(connect)
+{:ok, pid} = Tdex.start_link(hostname: "localhost", port: 6041, username: "root", password: "taosdata", database: "test")
+Tdex.query(pid, "SELECT ts,bid  FROM tick LIMIT 10", [])
 ```
 

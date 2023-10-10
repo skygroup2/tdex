@@ -9,7 +9,8 @@ defmodule Tdex.Protocol do
     opts = opts |> Map.put_new(:query, query)
     case Tdex.Connection.new_connect_ws(opts.hostname, opts.port) do
       {:ok, pid} ->
-        Tdex.Connection.connect(pid, opts)
+        {:ok, res} = Tdex.Connection.connect(pid, opts)
+        IO.puts("CONNECT #{inspect(res)}")
         opts = opts |> Map.put_new(:pidWS, pid)
         {:ok, opts}
       {:error, reason} -> {:error, reason}
