@@ -17,7 +17,6 @@ end
 defimpl DBConnection.Query, for: Tdex.Query do
   def parse(%{types: nil, name: name} = query, _) do
     # for query table to match names must be equal
-    IO.puts("parse 1")
     %{query | name: IO.iodata_to_binary(name)}
   end
 
@@ -31,9 +30,9 @@ defimpl DBConnection.Query, for: Tdex.Query do
   #   raise ArgumentError, "query #{inspect(query)} has not been prepared"
   # end
 
-  def encode(query, params, _) do
+  def encode(query, _params, _) do
     IO.inspect("en 2")
-    %{param_types: param_types, types: types} = query
+    %{param_types: _param_types, types: _types} = query
   end
 
   def decode(_, res, _opts) do
@@ -41,11 +40,9 @@ defimpl DBConnection.Query, for: Tdex.Query do
     res
   end
 
-  def decode(_, res, opts) do
-    IO.puts("decode 2")
-
-    res
-  end
+  # def decode(_, res, _opts) do
+  #   res
+  # end
 
   # def decode(_, copy, _opts) do
   #   copy
@@ -54,7 +51,6 @@ defimpl DBConnection.Query, for: Tdex.Query do
   ## Helpers
 
   defp decode_map(data, opts) do
-    IO.puts("m 0")
     case opts[:decode_mapper] do
       nil -> Enum.reverse(data)
       mapper -> decode_map(data, mapper, [])
@@ -62,7 +58,6 @@ defimpl DBConnection.Query, for: Tdex.Query do
   end
 
   defp decode_map([row | data], mapper, decoded) do
-    IO.puts("m 1")
     decode_map(data, mapper, [mapper.(row) | decoded])
   end
 

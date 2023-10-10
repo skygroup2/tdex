@@ -21,6 +21,7 @@ defmodule Tdex.Connection do
     end
   end
 
+  @spec new_connect_ws(any, any) :: {:ok, pid()}|{:error, any()}
   def new_connect_ws(host, port) do
     url = "ws://#{host}:#{port}/rest/ws"
     headers = %{
@@ -32,8 +33,9 @@ defmodule Tdex.Connection do
       %{status_code: 101, protocols: ["websocket"]} = resp ->
         {:ok, resp[:pid]}
       exp ->
-        exp
+        {:error, exp}
     end
+  catch _, ex -> {:error, ex}
   end
 
   def connect(pid, args) do
