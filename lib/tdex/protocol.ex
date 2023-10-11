@@ -1,12 +1,18 @@
 defmodule Tdex.Protocol do
   use DBConnection
+  alias Tdex.Socket
+  require Logger
+  require Skn.Log
 
   @impl true
   def connect(opts) do
     opts = Map.new(opts)
-    {:ok, pid} = GenServer.start_link(Tdex.Socket, opts)
-    {:ok, _} = Tdex.Socket.connect(pid)
-    {:ok, %{opts | pidSock: pid}}
+    case GenServer.start_link(Tdex.Socket, opts) do
+      {:error, err} -> {:error, err}
+      {:ok, pid} ->
+        Logger.info("Connect database successfully")
+        {:ok, %{opts | pidSock: pid}}
+    end
   end
 
   @impl true
@@ -46,8 +52,9 @@ defmodule Tdex.Protocol do
   end
 
   @impl true
-  def disconnect(_, _state) do
-    IO.inspect("disconnect")
+  def disconnect(_, state) do
+    Logger.info("Disconnect database")
+    Socket.disconnect(state.pidSock)
     :ok
   end
 
@@ -59,14 +66,6 @@ defmodule Tdex.Protocol do
   @impl true
   def handle_prepare(query, _opts, state) do
     {:ok, query, state}
-  end
-
-  def recv_ws() do
-    receive do
-      { :gun_ws, _pid, _ref, {:text, data} } -> {:ok, Jason.decode!(data)}
-      { :gun_ws, _pid, _ref, {:binary, data} } -> {:ok, (data)}
-    after 5000 -> {:error, :timeout}
-    end
   end
 
   @impl true
@@ -81,11 +80,8 @@ defmodule Tdex.Protocol do
   end
 
   @impl true
-  def handle_close(_, _, s) do
-    {:ok, nil, s}
-  end
-
-  def handle_info(msg, _opts \\ [], _s) do
-    IO.inspect(msg)
+  def handle_close(query, opts, state) do
+    disconnect(nil, state)
+    {:ok, nil, state}
   end
 end

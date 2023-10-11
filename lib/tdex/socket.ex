@@ -1,5 +1,6 @@
 defmodule Tdex.Socket do
   use GenServer
+  alias Tdex.Connection
 
   def init(opts) do
     opts = %{
@@ -11,30 +12,38 @@ defmodule Tdex.Socket do
     }
 
     state = %{
-      opts: opts,
+      # opts: opts,
       pidWS: nil,
-      result: nil
     }
 
-    case Tdex.Connection.new_connect_ws(opts.hostname, opts.port) do
-      {:ok, pid} -> {:ok, %{state | pidWS: pid} }
-      {:error, reason} -> {:error, reason}
+    with {:ok, pid} <- Connection.new_connect_ws(opts.hostname, opts.port),
+         {:ok, _} <- Connection.connect(pid, opts)
+    do
+      {:ok, %{state | pidWS: pid}}
+    else
+      {:error, _} = error ->
+        error
     end
-  # catch _, ex -> {:error, ex}
   end
 
-  def connect(pid) do
-    GenServer.call(pid, :conn, :infinity)
-  end
+  # def connect(pid) do
+  #   GenServer.call(pid, :conn, :infinity)
+  # end
 
   def query(pid, statement) do
     GenServer.call(pid, {:query, statement}, :infinity)
   end
 
-  def handle_call(:conn, _from, state) do
-    res = Tdex.Connection.connect(state.pidWS, state.opts)
-    {:reply, res, state}
+  def disconnect(pid) do
+    GenServer.call(pid, :disconnect, :infinity)
   end
+
+  # def handle_call(:conn, _from, state) do
+  #   case Tdex.Connection.connect(state.pidWS, state.opts) do
+  #     {:error, err} -> {:error, err, state}
+  #     {:ok, res} -> {:reply, res, state}
+  #   end
+  # end
 
   def handle_call({:query, statement}, _from, state) do
     {:ok, dataQuery} = Tdex.Connection.query(state.pidWS, statement)
@@ -51,5 +60,10 @@ defmodule Tdex.Socket do
     end
 
     {:reply, result, state}
+  end
+
+  def handle_call(:disconnect, _from, state) do
+    :gun.close(state.pidWS)
+    {:reply, :disconnect, state}
   end
 end

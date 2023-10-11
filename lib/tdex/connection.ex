@@ -3,7 +3,14 @@ defmodule Tdex.Connection do
 
   def recv_ws() do
     receive do
-      { :gun_ws, _pid, _ref, {:text, data} } -> {:ok, Jason.decode!(data)}
+      { :gun_ws, _pid, _ref, {:text, data} } ->
+        res = Jason.decode!(data)
+        %{"code" => code, "message" => message, "action" => action, "req_id" => req_id} = res
+        if code == 0 do
+          {:ok, res}
+        else
+          {:error, %Tdex.Error{code: code, message: message, action: action, req_id: req_id}}
+        end
       { :gun_ws, _pid, _ref, {:binary, data} } -> {:ok, (data)}
     after 5000 -> {:error, :timeout}
     end
@@ -15,7 +22,6 @@ defmodule Tdex.Connection do
       {:ok, List.flatten(data)}
     else
       {:ok, dateBlock} = fetch_block(pid, dataQuery["id"])
-      IO.inspect(Base.encode16(dateBlock))
       result = parse_block(dateBlock, dataQuery["fields_names"])
       read_row(pid, dataQuery, [result|data])
     end
@@ -32,8 +38,8 @@ defmodule Tdex.Connection do
     case Gun.ws_upgrade(url, headers, proxy_opts) do
       %{status_code: 101, protocols: ["websocket"]} = resp ->
         {:ok, resp[:pid]}
-      exp ->
-        {:error, exp}
+      _ ->
+        {:error, %Tdex.Error{message: "ws connection failed, check host or port again"}}
     end
   catch _, ex -> {:error, ex}
   end
