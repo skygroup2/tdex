@@ -18,5 +18,7 @@ end
 ```elixir
 {:ok, pid} = Tdex.start_link(hostname: "localhost", port: 6041, username: "root", password: "taosdata", database: "test")
 Tdex.query(pid, "SELECT ts,bid  FROM tick LIMIT 10", [])
+
+Tdex.query(pid, "SELECT ts,bid FROM tick WHERE bid = ? AND ask = ? LIMIT 10", [1, 2])
 ```
 

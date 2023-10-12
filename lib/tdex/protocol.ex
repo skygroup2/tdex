@@ -1,6 +1,6 @@
 defmodule Tdex.Protocol do
   use DBConnection
-  alias Tdex.Socket
+  alias Tdex.{Socket, Common}
   require Logger
   require Skn.Log
 
@@ -64,14 +64,18 @@ defmodule Tdex.Protocol do
   end
 
   @impl true
-  def handle_prepare(query, _opts, state) do
+  def handle_prepare(query, opts, state) do
     {:ok, query, state}
   end
 
   @impl true
-  def handle_execute(%{statement: statement} = query, _params, _, state) do
-    result = Tdex.Socket.query(state.pidSock, statement)
-    {:ok, query, result, state}
+  def handle_execute(query, params, _, state) do
+    case Common.interpolate_params(query.statement, params) do
+      {:ok, query_params} ->
+        result = Tdex.Socket.query(state.pidSock, query_params)
+        {:ok, query, result, state}
+      {:error, _} = error -> error
+    end
   end
 
   @impl true
