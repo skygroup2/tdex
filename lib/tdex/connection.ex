@@ -120,8 +120,4 @@ defmodule Tdex.Connection do
       },
     }
   end
-
-  def exec(pid, payload) do
-    Gun.ws_send(pid, payload)
-  end
 end

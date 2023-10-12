@@ -1,11 +1,12 @@
 defmodule Tdex.Binary do
+  import Bitwise
+
   def parse_block(<<_::binary-size(20), _len::32-little, rows::32-little, cols::32-little, _::binary-size(12), fields::binary-size(5*cols), blockSize::binary-size(cols*4), data::binary>>, fieldNames) do
     {"", "", headers} =
       Enum.reduce(fieldNames, {fields, blockSize, []}, fn name, {<<type, size::32-little, rest1::binary>>, <<blockSize::32-little, rest2::binary>>, acc} ->
         {rest1, rest2, [%{type: type, size: size, block_size: blockSize, name: name}|acc]}
       end)
     bitMapSize = Bitwise.bsr(rows + 7, 3)
-    IO.inspect(headers)
     parse_entry(Enum.reverse(headers), rows, bitMapSize, data, [])
       |> List.zip()
       |> Enum.map(fn x -> Enum.zip(fieldNames, Tuple.to_list(x)) end)
@@ -27,12 +28,34 @@ defmodule Tdex.Binary do
           any
         ) :: list
   def parse_entry([%{type: type, block_size: blockSize}|fields], rows, bitMapSize, data, acc) do
-    <<_::binary-size(bitMapSize), data::binary-size(blockSize), bin::binary>> = data
-    cols = parse_list(data, type, [])
+    <<bitMaps::binary-size(bitMapSize), data::binary-size(blockSize), bin::binary>> = data
+    cols = parse_list(bitMaps, data, type, 0, [])
     parse_entry(fields, rows, bitMapSize, bin, [cols|acc])
   end
 
   def parse_list(<<>>, _type, acc), do: Enum.reverse(acc)
+  def parse_list(_, <<>>, _type, _, acc), do: Enum.reverse(acc)
+  def parse_list(bitMaps, bin, type, row, acc) do
+    byteArrayIndex = Bitwise.bsr(row, 3)
+    bitwiseOffset = 7 - Bitwise.band(row, 7)
+
+    bitMap = if byteArrayIndex == 0 do
+      <<bitMap::8-little, _::binary>> = bitMaps
+      bitMap
+    else
+      <<_::binary-size(byteArrayIndex - 1), bitMap::8-little, _::binary>> = bitMaps
+      bitMap
+    end
+
+    bitFlag = (bitMap &&& (1 <<< bitwiseOffset)) >>> bitwiseOffset
+    if(bitFlag == 1) do
+      {_, rest} = parse_type(type, bin)
+      parse_list(bitMaps, rest, type, row + 1, [nil|acc])
+    else
+      {v, rest} = parse_type(type, bin)
+      parse_list(bitMaps, rest, type, row + 1, [v|acc])
+    end
+  end
   def parse_list(bin, type, acc) do
     {v, rest} = parse_type(type, bin)
     parse_list(rest, type, [v|acc])
