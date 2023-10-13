@@ -21,7 +21,7 @@ iex> Tdex.query!(pid, "SELECT ts,bid  FROM tick LIMIT 10", [])
 }
 
 iex> Tdex.query!(pid, "SELECT ts,bid FROM tick WHERE bid = ? AND ask = ? LIMIT 10", [1, 2])
-%Tdex.Result{code: 0, req_id: 8, rows: [], affected_rows: 0, message: ""}
+%Tdex.Result{code: 0, req_id: 3, rows: [], affected_rows: 0, message: ""}
 ```
 
 ## Features
