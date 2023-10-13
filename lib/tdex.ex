@@ -37,15 +37,4 @@ defmodule Tdex do
   def execute!(conn, query, params, opts \\ []) do
     DBConnection.execute!(conn, query, params, opts)
   end
-
-  def close(conn, query, opts \\ []) do
-    with {:ok, _} <- DBConnection.close(conn, query, opts) do
-      :ok
-    end
-  end
-
-  def close!(conn, query, opts \\ []) do
-    DBConnection.close!(conn, query, opts)
-    :ok
-  end
 end

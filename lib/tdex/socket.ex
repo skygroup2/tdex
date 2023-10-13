@@ -29,8 +29,8 @@ defmodule Tdex.Socket do
     GenServer.call(pid, {:query, statement}, :infinity)
   end
 
-  def disconnect(pid) do
-    GenServer.call(pid, :disconnect, :infinity)
+  def stop(pid) do
+    GenServer.stop(pid, :ws_shutdown, :infinity)
   end
 
   def handle_call({:query, statement}, _from, state) do
@@ -49,8 +49,8 @@ defmodule Tdex.Socket do
     {:reply, result, state}
   end
 
-  def handle_call(:disconnect, _from, state) do
-    :gun.close(state.pidWS)
-    {:reply, :disconnect, state}
+  def terminate(_reason, state) do
+    IO.puts("shutdown pid #{inspect(state.pidWS)}")
+    :gun.shutdown(state.pidWS)
   end
 end

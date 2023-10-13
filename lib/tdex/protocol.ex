@@ -9,9 +9,7 @@ defmodule Tdex.Protocol do
     opts = Map.new(opts)
     case GenServer.start_link(Tdex.Socket, opts) do
       {:error, err} -> {:error, err}
-      {:ok, pid} ->
-        Logger.info("Connect database successfully")
-        {:ok, %{opts | pidSock: pid}}
+      {:ok, pid} -> {:ok, %{opts | pidSock: pid}}
     end
   end
 
@@ -53,8 +51,7 @@ defmodule Tdex.Protocol do
 
   @impl true
   def disconnect(_, state) do
-    Logger.info("Disconnect database")
-    Socket.disconnect(state.pidSock)
+    Socket.stop(state.pidSock)
     :ok
   end
 
@@ -71,7 +68,7 @@ defmodule Tdex.Protocol do
   @impl true
   def handle_execute(query, params, _, state) do
     with {:ok, query_params} <- Common.interpolate_params(query.statement, params),
-         {:ok, result} <- Tdex.Socket.query(state.pidSock, query_params)
+         {:ok, result} <- Socket.query(state.pidSock, query_params)
     do
       {:ok, query, result, state}
     else

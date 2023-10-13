@@ -13,7 +13,3 @@ defmodule Tdex.Error do
     e.message
   end
 end
-
-defmodule Tdex.QueryError do
-  defexception [:message]
-end

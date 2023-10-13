@@ -33,7 +33,12 @@ defmodule Tdex.Binary do
     parse_entry(fields, rows, bitMapSize, bin, [cols|acc])
   end
 
+
   def parse_list(<<>>, _type, acc), do: Enum.reverse(acc)
+  def parse_list(bin, type, acc) do
+    {v, rest} = parse_type(type, bin)
+    parse_list(rest, type, [v|acc])
+  end
   def parse_list(_, <<>>, _type, _, acc), do: Enum.reverse(acc)
   def parse_list(bitMaps, bin, type, row, acc) do
     byteArrayIndex = Bitwise.bsr(row, 3)
@@ -56,10 +61,7 @@ defmodule Tdex.Binary do
       parse_list(bitMaps, rest, type, row + 1, [v|acc])
     end
   end
-  def parse_list(bin, type, acc) do
-    {v, rest} = parse_type(type, bin)
-    parse_list(rest, type, [v|acc])
-  end
+
 
   def parse_list1(<<>>, <<>>, _type, acc), do: Enum.reverse(acc)
   def parse_list1(offsets, bin, type, acc) do
