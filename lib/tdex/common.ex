@@ -40,11 +40,6 @@ defmodule Tdex.Common do
   defp parse_type(val) when is_integer(val), do: {:ok, Integer.to_string(val)}
   defp parse_type(val) when is_float(val), do: {:ok, Float.to_string(val)}
   defp parse_type(val) when is_boolean(val), do: {:ok, to_string(val)}
-  defp parse_type(val) when is_binary(val) and byte_size(val) > 0 do
-    case is_datetime(val) do
-      true -> {:ok, "'#{val}'"}
-      false -> {:ok, val}
-    end
-  end
+  defp parse_type(val) when is_binary(val) and byte_size(val) > 0, do: {:ok, "'#{val}'"}
   defp parse_type(_), do: {:error, :type_not_support}
 end

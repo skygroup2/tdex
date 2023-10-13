@@ -34,17 +34,16 @@ defmodule Tdex.Socket do
   end
 
   def handle_call({:query, statement}, _from, state) do
-    {:ok, dataQuery} = Tdex.Connection.query(state.pidWS, statement)
-
-    result = if dataQuery["code"] != 0 do
-      %{code: dataQuery["code"], message: dataQuery["message"]}
-    else
-      if dataQuery["fields_lengths"] do
-        {:ok, data} = Tdex.Connection.read_row(state.pidWS, dataQuery, [])
-        %{code: dataQuery["code"], rows: data, message: dataQuery["message"]}
-      else
-        %{code: dataQuery["code"], affected_rows: dataQuery["affected_rows"], message: dataQuery["message"]}
-      end
+    result = case Tdex.Connection.query(state.pidWS, statement) do
+      {:ok, dataQuery} ->
+        if dataQuery["fields_lengths"] do
+          {:ok, data} = Tdex.Connection.read_row(state.pidWS, dataQuery, [])
+          result = %Tdex.Result{code: dataQuery["code"], req_id: dataQuery["req_id"], rows: data, affected_rows: dataQuery["affected_rows"], message: dataQuery["message"]}
+          {:ok, result}
+        else
+          {:ok, %Tdex.Result{code: dataQuery["code"], req_id: dataQuery["req_id"], rows: [], affected_rows: dataQuery["affected_rows"], message: dataQuery["message"]}}
+        end
+      {:error, _ } = error -> error
     end
 
     {:reply, result, state}

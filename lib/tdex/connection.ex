@@ -48,7 +48,7 @@ defmodule Tdex.Connection do
     action = %{
       action: "conn",
       args: %{
-        reqID: get_req_id(:tdex),
+        req_id: get_req_id(:tdex),
         user: args[:username],
         password: args[:password],
         db: args[:database]
@@ -63,7 +63,7 @@ defmodule Tdex.Connection do
     action = %{
       action: "query",
       args: %{
-        reqID: get_req_id(:tdex),
+        req_id: get_req_id(:tdex),
         sql: statement
       }
     }
@@ -76,7 +76,7 @@ defmodule Tdex.Connection do
     action = %{
       action: "fetch",
       args: %{
-        reqID: get_req_id(:tdex),
+        req_id: get_req_id(:tdex),
         id: id
       }
     }
@@ -89,7 +89,7 @@ defmodule Tdex.Connection do
     action = %{
       action: "fetch_block",
       args: %{
-        reqID: get_req_id(:tdex),
+        req_id: get_req_id(:tdex),
         id: id
       }
     }

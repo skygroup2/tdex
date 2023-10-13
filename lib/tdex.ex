@@ -17,7 +17,7 @@ defmodule Tdex do
   def query(conn, statement, params, opts \\ []) do
     query = %Query{name: "", statement: statement}
     case DBConnection.prepare_execute(conn, query, params, opts) do
-      {:ok, _, result} -> {:ok, result}
+      {:ok, query, result} -> {:ok, query, result}
       {:error, _} = error -> error
     end
   end

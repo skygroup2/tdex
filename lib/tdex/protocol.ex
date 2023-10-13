@@ -64,17 +64,18 @@ defmodule Tdex.Protocol do
   end
 
   @impl true
-  def handle_prepare(query, opts, state) do
+  def handle_prepare(query, _opts, state) do
     {:ok, query, state}
   end
 
   @impl true
   def handle_execute(query, params, _, state) do
-    case Common.interpolate_params(query.statement, params) do
-      {:ok, query_params} ->
-        result = Tdex.Socket.query(state.pidSock, query_params)
-        {:ok, query, result, state}
-      {:error, _} = error -> error
+    with {:ok, query_params} <- Common.interpolate_params(query.statement, params),
+         {:ok, result} <- Tdex.Socket.query(state.pidSock, query_params)
+    do
+      {:ok, query, result, state}
+    else
+      {:error, exception} -> {:error, exception, state}
     end
   end
 
@@ -84,7 +85,7 @@ defmodule Tdex.Protocol do
   end
 
   @impl true
-  def handle_close(query, opts, state) do
+  def handle_close(_query, _opts, state) do
     disconnect(nil, state)
     {:ok, nil, state}
   end

@@ -1,5 +1,5 @@
 defmodule Tdex.Error do
-  defexception [:code, :message, :req_id, :action]
+  defexception [:code, :req_id, :message, :action]
 
   def exception(opts) do
     code = Keyword.get(opts, :code)
