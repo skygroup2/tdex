@@ -1,6 +1,6 @@
 defmodule Tdex do
   use Application
-  alias Tdex.Query
+  alias Tdex.{Query, WS}
   import Tdex.Utils
 
   def start(_type, _args) do
@@ -11,7 +11,7 @@ defmodule Tdex do
 
   def start_link(opts) do
     opts = default_opts(opts)
-    DBConnection.start_link(Tdex.Protocol, opts)
+    DBConnection.start_link(Tdex.DBConnection, opts)
   end
 
   def query(conn, statement, params, opts \\ []) do

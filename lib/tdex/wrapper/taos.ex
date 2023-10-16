@@ -26,6 +26,10 @@ defmodule Wrapper.Taos do
     raise "taos_print_row not implemented"
   end
 
+  def taos_fetch_raw_block(_res) do
+    raise "taos_fetch_raw_block not implemented"
+  end
+
   def taos_query(_connect, _sql) do
     raise "taos_query_a not implemented"
   end

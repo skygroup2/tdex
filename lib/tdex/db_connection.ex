@@ -1,15 +1,15 @@
-defmodule Tdex.Protocol do
+defmodule Tdex.DBConnection do
   use DBConnection
-  alias Tdex.{Socket, Common}
+  alias Tdex.Common
   require Logger
   require Skn.Log
 
   @impl true
   def connect(opts) do
     opts = Map.new(opts)
-    case GenServer.start_link(Tdex.Socket, opts) do
-      {:error, err} -> {:error, err}
-      {:ok, pid} -> {:ok, %{opts | pidSock: pid}}
+    case opts.protocol.connect(opts) do
+      {:ok, pid} -> {:ok, %{opts | pid: pid}}
+      {:error, _} = error -> error
     end
   end
 
@@ -51,7 +51,6 @@ defmodule Tdex.Protocol do
 
   @impl true
   def disconnect(_, state) do
-    Socket.stop(state.pidSock)
     :ok
   end
 
@@ -68,7 +67,7 @@ defmodule Tdex.Protocol do
   @impl true
   def handle_execute(query, params, _, state) do
     with {:ok, query_params} <- Common.interpolate_params(query.statement, params),
-         {:ok, result} <- Socket.query(state.pidSock, query_params)
+         {:ok, result} <- state.protocol.query(state.pid, query_params)
     do
       {:ok, query, result, state}
     else

@@ -1,4 +1,4 @@
-defmodule Tdex.Connection do
+defmodule Tdex.WS.Connection do
   import Tdex.{Ets, Binary}
 
   def recv_ws() do
@@ -13,17 +13,6 @@ defmodule Tdex.Connection do
         end
       { :gun_ws, _pid, _ref, {:binary, data} } -> {:ok, (data)}
     after 5000 -> {:error, :timeout}
-    end
-  end
-
-  def read_row(pid, dataQuery, data) do
-    {:ok, dataFetch} = fetch(pid, dataQuery["id"])
-    if dataFetch["completed"] do
-      {:ok, List.flatten(data)}
-    else
-      {:ok, dateBlock} = fetch_block(pid, dataQuery["id"])
-      result = parse_block(dateBlock, dataQuery["fields_names"])
-      read_row(pid, dataQuery, [result|data])
     end
   end
 

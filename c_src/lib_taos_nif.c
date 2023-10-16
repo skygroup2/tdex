@@ -187,6 +187,37 @@ static ERL_NIF_TERM taos_field_count_nif(ErlNifEnv* env, int argc, const ERL_NIF
   return enif_make_tuple2(env, atom_ok, enif_make_int(env, field_count));
 }
 
+static ERL_NIF_TERM taos_fetch_raw_block_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 1) {
+    return enif_make_badarg(env);
+  }
+
+  taos_res_t* res_ptr = NULL;
+  int num_of_rows = 0;
+  void* pg_data;
+  ErlNifBinary bin;
+
+  if(!enif_get_resource(env, argv[0], TAOS_RES_TYPE, (void**) &res_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+
+  int code = taos_fetch_raw_block(res_ptr->taos_res, &num_of_rows, &pg_data);
+
+  unsigned char sizeArr[9] = {0};
+  memcpy(sizeArr, pg_data + 4, 4);
+  int size = 0;
+  memcpy(&size, sizeArr, 4);
+  enif_alloc_binary(size, &bin);
+  memcpy(bin.data, pg_data, size);
+
+  return enif_make_tuple3(
+    env, 
+    atom_ok, 
+    enif_make_int(env, size),
+    enif_make_binary(env, &bin)
+  );
+}
+
 static ERL_NIF_TERM taos_fetch_fields_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
   if (argc != 1) {
     return enif_make_badarg(env);
@@ -194,16 +225,22 @@ static ERL_NIF_TERM taos_fetch_fields_nif(ErlNifEnv* env, int argc, const ERL_NI
 
   taos_res_t* res_ptr = NULL;
   taos_field_t* field_ptr = NULL;
+  ErlNifBinary bin;
 
   if(!enif_get_resource(env, argv[0], TAOS_RES_TYPE, (void**) &res_ptr)){
     return enif_make_tuple2(env, atom_error, atom_invalid_resource);
   };
 
-  field_ptr = (taos_field_t*)enif_alloc_resource(TAOS_FIELD_TYPE, sizeof(taos_field_t));
-  field_ptr->taos_field = taos_fetch_fields(res_ptr->taos_res);
-  ERL_NIF_TERM field = enif_make_resource(env, field_ptr);
-  enif_release_resource(field_ptr);
-  return enif_make_tuple2(env, atom_ok, field);
+  // field_ptr = (taos_field_t*)enif_alloc_resource(TAOS_FIELD_TYPE, sizeof(taos_field_t));
+  // field_ptr->taos_field = taos_fetch_fields(res_ptr->taos_res);
+  // ERL_NIF_TERM field = enif_make_resource(env, field_ptr);
+  // enif_release_resource(field_ptr);
+  int field_count = taos_field_count(res_ptr->taos_res);
+  int size = field_count * 72;
+  TAOS_FIELD* fields = taos_fetch_fields(res_ptr->taos_res);
+  enif_alloc_binary(size, &bin);
+  memcpy(bin.data, fields, size);
+  return enif_make_tuple2(env, atom_ok, enif_make_binary(env, &bin));
 }
 
 static ERL_NIF_TERM taos_errstr_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
@@ -303,6 +340,7 @@ static ErlNifFunc nif_funcs[] = {
   {"taos_fetch_fields", 1, taos_fetch_fields_nif},
   {"taos_field_count", 1, taos_field_count_nif},
   {"taos_print_row", 3, taos_print_row_nif},
+  {"taos_fetch_raw_block", 1, taos_fetch_raw_block_nif},
   {"taos_errstr", 1, taos_errstr_nif},
   {"taos_errno", 1, taos_errno_nif},
   {"taos_fetch_row", 1, taos_fetch_row_nif},

@@ -1,6 +1,6 @@
-defmodule Tdex.Socket do
+defmodule Tdex.WS.Socket do
   use GenServer
-  alias Tdex.Connection
+  alias Tdex.{WS.Connection, WS.Rows}
 
   def init(opts) do
     opts = %{
@@ -21,6 +21,7 @@ defmodule Tdex.Socket do
       {:ok, %{state | pidWS: pid}}
     else
       {:error, _} = error ->
+        IO.puts(error)
         error
     end
   end
@@ -34,10 +35,10 @@ defmodule Tdex.Socket do
   end
 
   def handle_call({:query, statement}, _from, state) do
-    result = case Tdex.Connection.query(state.pidWS, statement) do
+    result = case Connection.query(state.pidWS, statement) do
       {:ok, dataQuery} ->
         if dataQuery["fields_lengths"] do
-          {:ok, data} = Tdex.Connection.read_row(state.pidWS, dataQuery, [])
+          {:ok, data} = Rows.read_row(state.pidWS, dataQuery, [])
           result = %Tdex.Result{code: dataQuery["code"], req_id: dataQuery["req_id"], rows: data, affected_rows: dataQuery["affected_rows"], message: dataQuery["message"]}
           {:ok, result}
         else
