@@ -213,7 +213,7 @@ static ERL_NIF_TERM taos_fetch_raw_block_nif(ErlNifEnv* env, int argc, const ERL
   return enif_make_tuple3(
     env, 
     atom_ok, 
-    enif_make_int(env, size),
+    enif_make_int(env, num_of_rows),
     enif_make_binary(env, &bin)
   );
 }
@@ -231,10 +231,6 @@ static ERL_NIF_TERM taos_fetch_fields_nif(ErlNifEnv* env, int argc, const ERL_NI
     return enif_make_tuple2(env, atom_error, atom_invalid_resource);
   };
 
-  // field_ptr = (taos_field_t*)enif_alloc_resource(TAOS_FIELD_TYPE, sizeof(taos_field_t));
-  // field_ptr->taos_field = taos_fetch_fields(res_ptr->taos_res);
-  // ERL_NIF_TERM field = enif_make_resource(env, field_ptr);
-  // enif_release_resource(field_ptr);
   int field_count = taos_field_count(res_ptr->taos_res);
   int size = field_count * 72;
   TAOS_FIELD* fields = taos_fetch_fields(res_ptr->taos_res);
@@ -347,4 +343,4 @@ static ErlNifFunc nif_funcs[] = {
   {"taos_query_a", 4, taos_query_a_nif},
 };
 
-ERL_NIF_INIT(Elixir.Wrapper.Taos, nif_funcs, init_nif, NULL, NULL, NULL)
+ERL_NIF_INIT(Elixir.Tdex.Wrapper, nif_funcs, init_nif, NULL, NULL, NULL)

@@ -1,6 +1,13 @@
 defmodule Tdex.Binary do
   import Bitwise
 
+  def parse_field(<<>>, result), do: Enum.reverse(result)
+  def parse_field(fields, result) do
+    <<name::binary-size(65), _::3-binary, _::4-binary, res::binary>> = fields
+    v = Enum.at(:binary.split(name, <<0>>), 0)
+    parse_field(res, [v|result])
+  end
+
   def parse_block(<<_::binary-size(20), _len::32-little, rows::32-little, cols::32-little, _::binary-size(12), fields::binary-size(5*cols), blockSize::binary-size(cols*4), data::binary>>, fieldNames) do
     {"", "", headers} =
       Enum.reduce(fieldNames, {fields, blockSize, []}, fn name, {<<type, size::32-little, rest1::binary>>, <<blockSize::32-little, rest2::binary>>, acc} ->

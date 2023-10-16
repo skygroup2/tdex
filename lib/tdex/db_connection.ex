@@ -8,7 +8,7 @@ defmodule Tdex.DBConnection do
   def connect(opts) do
     opts = Map.new(opts)
     case opts.protocol.connect(opts) do
-      {:ok, pid} -> {:ok, %{opts | pid: pid}}
+      {:ok, pid} -> {:ok, %{opts | conn: pid}}
       {:error, _} = error -> error
     end
   end
@@ -50,7 +50,7 @@ defmodule Tdex.DBConnection do
   end
 
   @impl true
-  def disconnect(_, state) do
+  def disconnect(_, _state) do
     :ok
   end
 
@@ -67,7 +67,7 @@ defmodule Tdex.DBConnection do
   @impl true
   def handle_execute(query, params, _, state) do
     with {:ok, query_params} <- Common.interpolate_params(query.statement, params),
-         {:ok, result} <- state.protocol.query(state.pid, query_params)
+         {:ok, result} <- state.protocol.query(state.conn, query_params)
     do
       {:ok, query, result, state}
     else

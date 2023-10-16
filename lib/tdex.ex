@@ -1,6 +1,6 @@
 defmodule Tdex do
   use Application
-  alias Tdex.{Query, WS}
+  alias Tdex.Query
   import Tdex.Utils
 
   def start(_type, _args) do
