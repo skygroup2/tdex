@@ -10,6 +10,7 @@ static ErlNifResourceType* TAOS_ROW_TYPE;
 static ErlNifResourceType* TAOS_FIELD_TYPE;
 
 static ERL_NIF_TERM atom_ok;
+static ERL_NIF_TERM atom_error_auth;
 static ERL_NIF_TERM atom_error;
 static ERL_NIF_TERM atom_invalid_resource;
 
@@ -64,6 +65,9 @@ static ERL_NIF_TERM taos_connect_nif(ErlNifEnv* env, int argc, const ERL_NIF_TER
   taos_ptr->taos = taos_connect(ip, user, pass, db, port);
   ERL_NIF_TERM connect = enif_make_resource(env, taos_ptr);
   enif_release_resource(taos_ptr);
+  if(taos_ptr->taos == NULL){
+    return enif_make_tuple2(env, atom_error, atom_error_auth);
+  }
   return enif_make_tuple2(env, atom_ok, connect);
 }
 
@@ -324,6 +328,7 @@ static int init_nif(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info) {
   }
   atom_ok = enif_make_atom(env, "ok");
   atom_error = enif_make_atom(env, "error");  
+  atom_error_auth = enif_make_atom(env, "error_auth");  
   atom_invalid_resource = enif_make_atom(env, "invalid_resource");
   return 0;
 }
