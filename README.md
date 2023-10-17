@@ -1,12 +1,13 @@
 # Tdex
 
-
 Tdengine driver for Elixir.
 
 Documentation: 
 
-## Native connection
+## Note (when use native connection)
+- [Install Client Driver]("https://docs.tdengine.com/reference/connector/#Install-Client-Driver")
 
+## Native connection
 ```iex
 iex> {:ok, pid} = Tdex.start_link(protocol: "sql", hostname: "localhost", port: 6030, username: "root", password: "taosdata", database: "test", pool_size: 1)
 {:ok, #PID<0.69.0>}

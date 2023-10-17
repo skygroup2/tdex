@@ -23,7 +23,6 @@ defmodule Tdex.DBConnection do
     {:ok, nil, state}
   end
 
-
   @impl true
   def handle_begin(_opts, state) do
     {:ok, nil, state}
@@ -50,7 +49,8 @@ defmodule Tdex.DBConnection do
   end
 
   @impl true
-  def disconnect(_, _state) do
+  def disconnect(_, state) do
+    state.protocol.stop(state.conn)
     :ok
   end
 

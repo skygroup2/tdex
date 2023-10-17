@@ -17,13 +17,13 @@ defmodule Tdex.Sql do
         {:ok, field} = Wrapper.taos_fetch_fields(res)
         fieldNames = Binary.parse_field(field, [])
         Rows.read_row(res, fieldNames, [])
-      _ ->
-        {:ok, error} = Wrapper.taos_errstr(res)
-        {:error, error}
+      {:error, errNo} ->
+        {:ok, msgErr} = Wrapper.taos_errstr(res)
+        {:error, %Tdex.Error{code: errNo, message: msgErr}}
     end
   end
 
-  def disconnect(_) do
-
+  def stop(conn) do
+    Wrapper.taos_close(conn)
   end
 end
