@@ -30,11 +30,13 @@ defmodule Tdex do
     end
   end
 
-  def execute(conn, query, params, opts \\ []) do
+  def execute(conn, statement, params, opts \\ []) do
+    query = %Query{name: "", statement: statement}
     DBConnection.execute(conn, query, params, opts)
   end
 
-  def execute!(conn, query, params, opts \\ []) do
+  def execute!(conn, statement, params, opts \\ []) do
+    query = %Query{name: "", statement: statement}
     DBConnection.execute!(conn, query, params, opts)
   end
 end
