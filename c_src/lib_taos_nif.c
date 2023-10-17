@@ -206,22 +206,30 @@ static ERL_NIF_TERM taos_fetch_raw_block_nif(ErlNifEnv* env, int argc, const ERL
   };
 
   int code = taos_fetch_raw_block(res_ptr->taos_res, &num_of_rows, &pg_data);
+  if(code == 0){
+    unsigned char sizeArr[9] = {0};
+    int size = 0;
+    memcpy(sizeArr, pg_data + 4, 4);
+    memcpy(&size, sizeArr, 4);
+    enif_alloc_binary(size, &bin);
+    memcpy(bin.data, pg_data, size);
 
-  unsigned char sizeArr[9] = {0};
-  memcpy(sizeArr, pg_data + 4, 4);
-  int size = 0;
-  memcpy(&size, sizeArr, 4);
-  enif_alloc_binary(size, &bin);
-  memcpy(bin.data, pg_data, size);
-
-  ERL_NIF_TERM block_bin = enif_make_binary(env, &bin);
-  enif_release_binary(&bin);
-  return enif_make_tuple3(
-    env, 
-    atom_ok, 
-    enif_make_int(env, num_of_rows),
-    block_bin
-  );
+    ERL_NIF_TERM block_bin = enif_make_binary(env, &bin);
+    enif_release_binary(&bin);
+    return enif_make_tuple3(
+      env, 
+      atom_ok, 
+      enif_make_int(env, num_of_rows),
+      block_bin
+    );
+  } else {
+    const char* err_str = taos_errstr(res_ptr->taos_res);
+    return enif_make_tuple2(
+      env, 
+      atom_error, 
+      enif_make_string(env, err_str, ERL_NIF_LATIN1)
+    );
+  }
 }
 
 static ERL_NIF_TERM taos_fetch_fields_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
