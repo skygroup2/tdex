@@ -173,7 +173,7 @@ static ERL_NIF_TERM taos_print_row_nif(ErlNifEnv* env, int argc, const ERL_NIF_T
     return enif_make_badarg(env);
   };
 
-  int res = taos_print_row(str, row_ptr->taos_row, field_ptr->taos_field, num_fields);
+  taos_print_row(str, row_ptr->taos_row, field_ptr->taos_field, num_fields);
   return enif_make_tuple2(env, atom_ok, enif_make_string(env, str, ERL_NIF_LATIN1));
 }
 
@@ -230,7 +230,6 @@ static ERL_NIF_TERM taos_fetch_fields_nif(ErlNifEnv* env, int argc, const ERL_NI
   }
 
   taos_res_t* res_ptr = NULL;
-  taos_field_t* field_ptr = NULL;
   ErlNifBinary bin;
 
   if(!enif_get_resource(env, argv[0], TAOS_RES_TYPE, (void**) &res_ptr)){

@@ -1,8 +1,9 @@
 defmodule Tdex.Wrapper do
-  @on_load :load_nifs
+  @compile {:autoload, false}
+  @on_load {:load_nifs, 0}
 
   def load_nifs do
-    path = :filename.join(File.cwd!, "c_src/lib_taos_nif")
+    path = :filename.join(:code.priv_dir(:tdex), 'lib_taos_nif')
     :erlang.load_nif(path, 0)
   end
 

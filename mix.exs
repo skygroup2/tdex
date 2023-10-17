@@ -8,6 +8,7 @@ defmodule Tdex.MixProject do
       elixir: "~> 1.15",
       elixirc_paths: [:lib],
       start_permanent: Mix.env() == :prod,
+      compilers: [:elixir_make] ++ Mix.compilers(),
       deps: deps()
     ]
   end
@@ -34,6 +35,7 @@ defmodule Tdex.MixProject do
     [
       {:skn_lib, git: "git@github.com:skygroup2/skn_lib.git", branch: "main"},
       {:gun, git: "git@github.com:skygroup2/gun.git", branch: "master"},
+      {:elixir_make, "~> 0.7.7", runtime: false},
       {:jason, "~> 1.4"},
       {:db_connection, "~> 2.1"},
       {:observer_cli, "~> 1.7"}
