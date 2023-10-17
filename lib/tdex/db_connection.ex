@@ -71,7 +71,7 @@ defmodule Tdex.DBConnection do
     do
       {:ok, query, result, state}
     else
-      {:error, exception} -> {:error, exception, state}
+      {:error, error} -> {:error, error, state}
     end
   end
 

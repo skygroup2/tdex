@@ -1,5 +1,5 @@
 defmodule Tdex.WS.Connection do
-  import Tdex.{Ets, Binary}
+  import Tdex.{Ets}
 
   def recv_ws() do
     receive do

@@ -268,7 +268,8 @@ static ERL_NIF_TERM taos_errno_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
   };
 
   int err_no = taos_errno(res_ptr->taos_res);
-  return enif_make_tuple2(env, atom_ok, enif_make_int(env, err_no));
+  if(err_no == 0) return enif_make_tuple2(env, atom_ok, enif_make_int(env, err_no));
+  return enif_make_tuple2(env, atom_error, enif_make_int(env, err_no));
 }
 // extern void query_callback(void *param, TAOS_RES *res, int code);
 

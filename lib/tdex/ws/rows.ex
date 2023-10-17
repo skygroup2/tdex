@@ -7,7 +7,6 @@ defmodule Tdex.WS.Rows do
       {:ok, List.flatten(data)}
     else
       {:ok, dataBlock} = Connection.fetch_block(pid, dataQuery["id"])
-      IO.inspect({Base.encode16(dataBlock)})
       result = Binary.parse_block(dataBlock, dataQuery["fields_names"])
       read_row(pid, dataQuery, [result|data])
     end
