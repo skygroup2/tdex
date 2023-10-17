@@ -33,6 +33,8 @@ defmodule Tdex.Common do
   defp parse_type(val) when is_integer(val), do: {:ok, Integer.to_string(val)}
   defp parse_type(val) when is_float(val), do: {:ok, Float.to_string(val)}
   defp parse_type(val) when is_boolean(val), do: {:ok, to_string(val)}
-  defp parse_type(val) when is_binary(val) and byte_size(val) > 0, do: {:ok, "'#{val}'"}
+  defp parse_type(val) when is_binary(val), do: {:ok, "'#{val}'"}
+  defp parse_type(val) when is_struct(val, DateTime), do: {:ok, "'#{DateTime.to_string(val)}'"}
+  defp parse_type(val) when is_struct(val, Date), do: {:ok, "'#{Date.to_string(val)}'"}
   defp parse_type(_), do: {:error, :type_not_support}
 end

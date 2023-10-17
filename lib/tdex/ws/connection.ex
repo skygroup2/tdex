@@ -1,7 +1,7 @@
 defmodule Tdex.WS.Connection do
   import Tdex.{Ets}
 
-  def recv_ws() do
+  def recv_ws(timeout) do
     receive do
       { :gun_ws, _pid, _ref, {:text, data} } ->
         res = Jason.decode!(data)
@@ -12,7 +12,7 @@ defmodule Tdex.WS.Connection do
           {:error, %Tdex.Error{code: code, message: message, action: action, req_id: req_id}}
         end
       { :gun_ws, _pid, _ref, {:binary, data} } -> {:ok, (data)}
-    after 5000 -> {:error, :timeout}
+    after timeout -> {:error, :timeout}
     end
   end
 
@@ -37,7 +37,7 @@ defmodule Tdex.WS.Connection do
     action = %{
       action: "conn",
       args: %{
-        req_id: get_req_id(:tdex),
+        req_id: get_req_id(),
         user: args[:username],
         password: args[:password],
         db: args[:database]
@@ -45,46 +45,46 @@ defmodule Tdex.WS.Connection do
     }
 
     Gun.ws_send(pid, {:text, Jason.encode!(action)})
-    recv_ws()
+    recv_ws(args[:timeout])
   end
 
-  def query(pid, statement) do
+  def query(pid, statement, timeout) do
     action = %{
       action: "query",
       args: %{
-        req_id: get_req_id(:tdex),
+        req_id: get_req_id(),
         sql: statement
       }
     }
 
     Gun.ws_send(pid, {:text, Jason.encode!(action)})
-    recv_ws()
+    recv_ws(timeout)
   end
 
-  def fetch(pid, id) do
+  def fetch(pid, id, timeout) do
     action = %{
       action: "fetch",
       args: %{
-        req_id: get_req_id(:tdex),
+        req_id: get_req_id(),
         id: id
       }
     }
 
     Gun.ws_send(pid, {:text, Jason.encode!(action)})
-    recv_ws()
+    recv_ws(timeout)
   end
 
-  def fetch_block(pid, id) do
+  def fetch_block(pid, id, timeout) do
     action = %{
       action: "fetch_block",
       args: %{
-        req_id: get_req_id(:tdex),
+        req_id: get_req_id(),
         id: id
       }
     }
 
     Gun.ws_send(pid, {:text, Jason.encode!(action)})
-    recv_ws()
+    recv_ws(timeout)
   end
 
   def ws_default_option(connect_timeout, recv_timeout\\ 30000) do

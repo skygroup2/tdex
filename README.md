@@ -5,7 +5,7 @@ Tdengine driver for Elixir.
 Documentation: 
 
 ## Note (when use native connection)
-- [Install Client Driver]("https://docs.tdengine.com/reference/connector/#Install-Client-Driver")
+- [Install Client Driver](https://docs.tdengine.com/reference/connector/#Install-Client-Driver)
 
 ## Native connection
 ```iex
@@ -25,6 +25,21 @@ iex> Tdex.query!(pid, "SELECT ts,bid FROM tick WHERE bid = ? AND ask = ? LIMIT 1
 %Tdex.Result{code: 0, req_id: 3, rows: [], affected_rows: 0, message: ""}
 ```
 ## Websocket connection
+
+### API
+1. Tdex.start_link(opts)
+
+- opts: 
+  - protocol: protocol
+  - hostname: host tdengine
+  - port: port tdengine
+  - username: username tdengine
+  - password: password tdengine
+  - database: database tdengine
+  - pool_size: connect pool size
+  - timeout: timeout ws
+### Example
+
 ```iex
 iex> {:ok, pid} = Tdex.start_link(protocol: "ws", hostname: "localhost", port: 6041, username: "root", password: "taosdata", database: "test", pool_size: 1)
 {:ok, #PID<0.69.0>}

@@ -8,11 +8,13 @@ defmodule Tdex.WS.Socket do
       port: opts.port,
       username: opts.username,
       password: opts.password,
-      database: opts.database
+      database: opts.database,
+      timeout: opts.timeout
     }
 
     state = %{
       pidWS: nil,
+      timeout: opts.timeout
     }
 
     with {:ok, pid} <- Connection.new_connect_ws(opts.hostname, opts.port),
@@ -21,7 +23,6 @@ defmodule Tdex.WS.Socket do
       {:ok, %{state | pidWS: pid}}
     else
       {:error, _} = error ->
-        IO.puts(error)
         error
     end
   end
@@ -31,14 +32,14 @@ defmodule Tdex.WS.Socket do
   end
 
   def stop(pid) do
-    GenServer.stop(pid, :ws_shutdown, :infinity)
+    GenServer.stop(pid, :gun_down, :infinity)
   end
 
   def handle_call({:query, statement}, _from, state) do
-    result = case Connection.query(state.pidWS, statement) do
+    result = case Connection.query(state.pidWS, statement, state.timeout) do
       {:ok, dataQuery} ->
         if dataQuery["fields_lengths"] do
-          {:ok, data} = Rows.read_row(state.pidWS, dataQuery, [])
+          {:ok, data} = Rows.read_row(state.pidWS, dataQuery, state.timeout, [])
           result = %Tdex.Result{code: dataQuery["code"], req_id: dataQuery["req_id"], rows: data, affected_rows: dataQuery["affected_rows"], message: dataQuery["message"]}
           {:ok, result}
         else
@@ -48,6 +49,10 @@ defmodule Tdex.WS.Socket do
     end
 
     {:reply, result, state}
+  end
+
+  def handle_info({:gun_down, _, :ws, :closed, []}, state) do
+    {:stop, :gun_down, state}
   end
 
   def terminate(_reason, state) do

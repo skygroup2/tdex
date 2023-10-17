@@ -4,7 +4,7 @@ defmodule Tdex do
   import Tdex.Utils
 
   def start(_type, _args) do
-    Tdex.Ets.create_table(:tdex)
+    Tdex.Ets.create_table()
     :logger.add_handlers(:tdex)
     Supervisor.start_link([], strategy: :one_for_one)
   end
