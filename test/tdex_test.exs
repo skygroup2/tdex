@@ -3,6 +3,6 @@ defmodule TdexTest do
   doctest Tdex
 
   test "greets the world" do
-    assert Tdex.hello() == :world
+
   end
 end

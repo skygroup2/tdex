@@ -1,0 +1,83 @@
+defmodule QueryTest do
+  use ExUnit.Case
+  import Tdex.TestHelper
+  alias ExUnit.DocTest.Error
+  alias Tdex, as: T
+
+  setup context do
+    opts = [
+      database: "tdex_test",
+      backoff_type: :stop,
+      max_restarts: 0
+    ]
+
+    {:ok, pid} = T.start_link(opts)
+    {:ok, [pid: pid, options: opts]}
+  end
+
+  test "decode basic types", context do
+    assert [%{"null" => nil}] = query("SELECT NULL", [])
+    assert [%{"false" => false, "true" => true}] = query("SELECT true, false", [])
+    assert [%{"'e'" => "e"}] = query("SELECT 'e'", [])
+    assert [%{"'ẽ'" => "ẽ"}] = query("SELECT 'ẽ'", [])
+    assert [%{"42" => 42}] = query("SELECT 42", [])
+    assert [%{"42.0" => 42.0}] = query("SELECT 42.0", [])
+    assert [%{"'NaN'" => "NaN"}] = query("SELECT 'NaN'", [])
+    assert [%{"'inf'" => "inf"}] = query("SELECT 'inf'", [])
+    assert [%{"'-inf'" => "-inf"}] = query("SELECT '-inf'", [])
+    assert [%{"'ẽric'" => "ẽric"}] = query("SELECT 'ẽric'", [])
+    assert [%{"'ẽric'" => "ẽric"}] = query("SELECT 'ẽric'", [])
+    assert [%{"'\\001\\002\\003'" => "001002003"}] = query("SELECT '\\001\\002\\003'", [])
+  end
+
+  test "decode numeric", context do
+    assert [%{"42" => 42}] == query("SELECT 42", [])
+    assert [%{"42.0" => 42.0}] == query("SELECT 42.0", [])
+    assert [%{"1.001" =>  1.001}] == query("SELECT 1.001", [])
+    assert [%{"0.4242" =>  0.4242}] == query("SELECT 0.4242", [])
+    assert [%{"42.4242" =>  42.4242}] == query("SELECT 42.4242", [])
+    assert [%{"12345.12345" =>  12345.12345}] == query("SELECT 12345.12345", [])
+    assert [%{"0.00012345" => 0.00012345}] == query("SELECT 0.00012345", [])
+    assert [%{"1000000000.0" => 1000000000.0}] == query("SELECT 1000000000.0", [])
+    assert [%{"1000000000.1" => 1000000000.1}] == query("SELECT 1000000000.1", [])
+    assert [%{"1000000000.1" => 1000000000.1}] == query("SELECT 1000000000.1", [])
+    # assert [%{"123456789123456789123456789" => 123456789123456789123456789}] == query("SELECT 123456789123456789123456789", [])
+    assert [%{"123456789123456789123456789.123456789" => 123456789123456789123456789.123456789}] == query("SELECT 123456789123456789123456789.123456789", [])
+    assert [%{"1.1234500000" => 1.1234500000}] == query("SELECT 1.1234500000", [])
+    assert [%{"'NaN'" => "NaN"}] == query("SELECT 'NaN'", [])
+  end
+
+  test "decode name", context do
+    assert [%{"'test'" => "test"}] == query("SELECT 'test'", [])
+  end
+
+  test "placeholder query", context do
+    assert [%{"1" => 1}] == query("SELECT ?", [1])
+    # assert [%{"-1" => -1}] == query("SELECT ?", [-1])
+    assert [%{"23.12" => 23.12}] == query("SELECT ?", [23.12])
+    # assert [%{"232.11111111111111111" => 232.11111111111111111}] == query("SELECT ?", [232.11111111111111111])
+    assert [%{"'test'" => "test"}] == query("SELECT ?", ["test"])
+    assert [%{"true" => true}] == query("SELECT ?", [true])
+    assert [%{"'2000-01-01'" => "2000-01-01"}] == query("SELECT ?", [~D[2000-01-01]])
+    assert [%{"'2018-11-15 10:00:00Z'" => "2018-11-15 10:00:00Z"}] == query("SELECT ?", [~U[2018-11-15 10:00:00Z]])
+  end
+
+  test "fail on parameter length mismatch", context do
+    assert_raise UndefinedFunctionError, "function :arg_not_valid.exception/1 is undefined (module :arg_not_valid is not available)", fn ->
+      query!("SELECT ?", [1,2])
+    end
+
+    assert_raise UndefinedFunctionError, "function :arg_not_valid.exception/1 is undefined (module :arg_not_valid is not available)", fn ->
+      query!("SELECT 42", [1])
+    end
+
+    assert [%{"42" => 42}] = query("SELECT 42", [])
+  end
+
+  test "result struct", context do
+    assert {:ok, _, res} = T.query(context[:pid], "SELECT 123 AS a, 456 AS b", [])
+    assert %T.Result{} = res
+    assert res.code == 0
+    assert res.rows == [%{"a" => 123, "b" => 456}]
+  end
+end

@@ -7,7 +7,7 @@ remote)
     iex --name ${uuid}_${app}@erlnode1 --remsh ${app}@erlnode1 --erl "-setcookie nopass"
     ;;
 test)
-    CONFIG_FILE=priv/${app}.config mix test --no-start
+    CONFIG_FILE=priv/${app}.config mix test
     ;;
 *)
     CONFIG_FILE=priv/${app}.config iex --name ${app}@erlnode1 --erl "-setcookie nopass" -S mix
