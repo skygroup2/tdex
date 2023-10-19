@@ -39,7 +39,7 @@ defmodule Tdex.WS.Socket do
     result = case Connection.query(state.pidWS, statement, state.timeout) do
       {:ok, dataQuery} ->
         if dataQuery["fields_lengths"] do
-          {:ok, data} = Rows.read_row(state.pidWS, dataQuery, state.timeout, [])
+          {:ok, data} = Rows.read_row(state.pidWS, dataQuery, state.timeout)
           result = %Tdex.Result{code: dataQuery["code"], req_id: dataQuery["req_id"], rows: data, affected_rows: dataQuery["affected_rows"], message: dataQuery["message"]}
           {:ok, result}
         else

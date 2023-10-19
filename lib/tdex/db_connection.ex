@@ -69,7 +69,7 @@ defmodule Tdex.DBConnection do
     with {:ok, query_params} <- Common.interpolate_params(query.statement, params),
          {:ok, result} <- state.protocol.query(state.conn, query_params)
     do
-      {:ok, query, result, state}
+      {:ok, %Tdex.Query{name: "", statement: query_params}, result, state}
     else
       {:error, error} -> {:error, error, state}
     end

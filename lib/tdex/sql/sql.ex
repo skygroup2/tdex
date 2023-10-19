@@ -16,7 +16,7 @@ defmodule Tdex.Sql do
       {:ok, _} ->
         {:ok, field} = Wrapper.taos_fetch_fields(res)
         fieldNames = Binary.parse_field(field, [])
-        Rows.read_row(res, fieldNames, [])
+        Rows.read_row(res, fieldNames)
       {:error, errNo} ->
         {:ok, msgErr} = Wrapper.taos_errstr(res)
         {:error, %Tdex.Error{code: errNo, message: msgErr}}

@@ -1,7 +1,7 @@
 defmodule Tdex.Sql.Rows do
   alias Tdex.{Wrapper, Binary}
 
-  def read_row(res, fieldNames, data) do
+  def read_row(res, fieldNames, data \\ []) do
     { :ok, numOfRows, bin } = Wrapper.taos_fetch_raw_block(res)
     if numOfRows == 0 do
       {:ok, %Tdex.Result{code: 0, rows: data}}
