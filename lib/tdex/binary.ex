@@ -82,10 +82,10 @@ defmodule Tdex.Binary do
   end
 
   def parse_type(1, <<v::8-little, rest::binary>>), do: {v==1, rest}
-  def parse_type(2, <<v::8-little, rest::binary>>), do: {v, rest}
-  def parse_type(3, <<v::16-little, rest::binary>>), do: {v, rest}
-  def parse_type(4, <<v::32-little, rest::binary>>), do: {v, rest}
-  def parse_type(5, <<v::64-little, rest::binary>>), do: {v, rest}
+  def parse_type(2, <<v::8-little-signed, rest::binary>>), do: {v, rest}
+  def parse_type(3, <<v::16-little-signed, rest::binary>>), do: {v, rest}
+  def parse_type(4, <<v::32-little-signed, rest::binary>>), do: {v, rest}
+  def parse_type(5, <<v::64-little-signed, rest::binary>>), do: {v, rest}
   def parse_type(6, <<v::64-float-little, rest::binary>>), do: {v, rest}
   def parse_type(7, <<v::64-float-little, rest::binary>>), do: {v, rest}
   def parse_type(8, bin) do
@@ -97,10 +97,10 @@ defmodule Tdex.Binary do
     <<len::16-little, v::binary-size(len), rest::binary>> = bin
     {:unicode.characters_to_binary(v, {:utf32, :little}, :utf8), rest}
   end
-  def parse_type(11, <<v::8-unsigned-little, rest::binary>>), do: {v, rest}
-  def parse_type(12, <<v::16-unsigned-little, rest::binary>>), do: {v, rest}
-  def parse_type(13, <<v::32-unsigned-little, rest::binary>>), do: {v, rest}
-  def parse_type(14, <<v::64-unsigned-little, rest::binary>>), do: {v, rest}
+  def parse_type(11, <<v::8-little-unsigned, rest::binary>>), do: {v, rest}
+  def parse_type(12, <<v::16-little-unsigned, rest::binary>>), do: {v, rest}
+  def parse_type(13, <<v::32-little-unsigned, rest::binary>>), do: {v, rest}
+  def parse_type(14, <<v::64-little-unsigned, rest::binary>>), do: {v, rest}
   def parse_type(15, bin) do
     <<len::16-little, v::binary-size(len), rest::binary>> = bin
     {Jason.decode!(v), rest}
