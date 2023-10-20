@@ -86,7 +86,7 @@ defmodule Tdex.Binary do
   def parse_type(3, <<v::16-little-signed, rest::binary>>), do: {v, rest}
   def parse_type(4, <<v::32-little-signed, rest::binary>>), do: {v, rest}
   def parse_type(5, <<v::64-little-signed, rest::binary>>), do: {v, rest}
-  def parse_type(6, <<v::64-float-little, rest::binary>>), do: {v, rest}
+  def parse_type(6, <<v::32-float-little, rest::binary>>), do: {v, rest}
   def parse_type(7, <<v::64-float-little, rest::binary>>), do: {v, rest}
   def parse_type(8, bin) do
     <<len::16-little, v::binary-size(len), rest::binary>> = bin
