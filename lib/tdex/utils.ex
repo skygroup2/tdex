@@ -5,7 +5,6 @@ defmodule Tdex.Utils do
     |> Keyword.put_new(:password, "taosdata")
     |> Keyword.put_new(:database, "taos")
     |> Keyword.put_new(:hostname, "localhost")
-    |> Keyword.put_new(:query, %{ id: 0, fieldsCount: 0, fieldsLengths: [], fieldsNames: [], fieldsTypes: [], precision: 0 })
     |> Keyword.put_new(:timeout, 10000)
     |> Keyword.put_new(:conn, 0)
     |> Keyword.put_new(:port, 6041)

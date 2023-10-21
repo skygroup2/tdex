@@ -11,6 +11,10 @@ defmodule Tdex.Wrapper do
     raise "taos_connect not implemented"
   end
 
+  def taos_cleanup() do
+    raise "taos_cleanup not implemented"
+  end
+
   def taos_select_db(_connect, _db) do
     raise "taos_select_db not implemented"
   end
@@ -29,6 +33,10 @@ defmodule Tdex.Wrapper do
 
   def taos_fetch_raw_block(_res) do
     raise "taos_fetch_raw_block not implemented"
+  end
+
+  def taos_free_result(_res) do
+    raise "taos_free_result not implemented"
   end
 
   def taos_query(_connect, _sql) do

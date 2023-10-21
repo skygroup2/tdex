@@ -63,11 +63,11 @@ static ERL_NIF_TERM taos_connect_nif(ErlNifEnv* env, int argc, const ERL_NIF_TER
 
   taos_ptr = (taos_t*)enif_alloc_resource(TAOS_TYPE, sizeof(taos_t));
   taos_ptr->taos = taos_connect(ip, user, pass, db, port);
-  ERL_NIF_TERM connect = enif_make_resource(env, taos_ptr);
-  enif_release_resource(taos_ptr);
   if(taos_ptr->taos == NULL){
     return enif_make_tuple2(env, atom_error, atom_error_auth);
   }
+  ERL_NIF_TERM connect = enif_make_resource(env, taos_ptr);
+  enif_release_resource(taos_ptr);
   return enif_make_tuple2(env, atom_ok, connect);
 }
 
@@ -232,6 +232,30 @@ static ERL_NIF_TERM taos_fetch_raw_block_nif(ErlNifEnv* env, int argc, const ERL
   }
 }
 
+static ERL_NIF_TERM taos_free_result_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 1) {
+    return enif_make_badarg(env);
+  }
+
+  taos_res_t* res_ptr = NULL;
+  if(!enif_get_resource(env, argv[0], TAOS_RES_TYPE, (void**) &res_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+
+  taos_free_result(res_ptr->taos_res);
+  return enif_make_tuple1(env, atom_ok);
+}
+
+static ERL_NIF_TERM taos_cleanup_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 0) {
+    return enif_make_badarg(env);
+  }
+
+  taos_cleanup();
+  return enif_make_tuple1(env, atom_ok);
+}
+
+
 static ERL_NIF_TERM taos_fetch_fields_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
   if (argc != 1) {
     return enif_make_badarg(env);
@@ -351,9 +375,11 @@ static ErlNifFunc nif_funcs[] = {
   {"taos_close", 1, taos_close_nif},
   {"taos_select_db", 2, taos_select_db_nif},
   {"taos_query", 2, taos_query_nif},
+  {"taos_free_result", 1, taos_free_result_nif},
   {"taos_fetch_fields", 1, taos_fetch_fields_nif},
   {"taos_field_count", 1, taos_field_count_nif},
   {"taos_print_row", 3, taos_print_row_nif},
+  {"taos_cleanup", 0, taos_cleanup_nif},
   {"taos_fetch_raw_block", 1, taos_fetch_raw_block_nif},
   {"taos_errstr", 1, taos_errstr_nif},
   {"taos_errno", 1, taos_errno_nif},
