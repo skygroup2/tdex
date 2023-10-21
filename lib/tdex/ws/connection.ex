@@ -61,6 +61,18 @@ defmodule Tdex.WS.Connection do
     recv_ws(timeout)
   end
 
+  def free_result(pid, id) do
+    action = %{
+      action: "free_result  ",
+      args: %{
+        req_id: get_req_id(),
+        id: id
+      }
+    }
+
+    Gun.ws_send(pid, {:text, Jason.encode!(action)})
+  end
+
   def fetch(pid, id, timeout) do
     action = %{
       action: "fetch",

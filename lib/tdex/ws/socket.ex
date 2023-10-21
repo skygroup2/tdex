@@ -36,19 +36,26 @@ defmodule Tdex.WS.Socket do
   end
 
   def handle_call({:query, statement}, _from, state) do
-    result = case Connection.query(state.pidWS, statement, state.timeout) do
-      {:ok, dataQuery} ->
-        if dataQuery["fields_lengths"] do
-          {:ok, data} = Rows.read_row(state.pidWS, dataQuery, state.timeout)
-          result = %Tdex.Result{code: dataQuery["code"], req_id: dataQuery["req_id"], rows: data, affected_rows: dataQuery["affected_rows"], message: dataQuery["message"]}
-          {:ok, result}
-        else
-          {:ok, %Tdex.Result{code: dataQuery["code"], req_id: dataQuery["req_id"], rows: [], affected_rows: dataQuery["affected_rows"], message: dataQuery["message"]}}
-        end
-      {:error, _ } = error -> error
-    end
+    query = Connection.query(state.pidWS, statement, state.timeout)
+    handle_query(query, state)
+  end
 
-    {:reply, result, state}
+  defp handle_query({:error, reason} = error, state) do
+    {:reply, error, state}
+  end
+
+  defp handle_query({:ok, %{"fields_lengths" => nil} = dataQuery}, state) do
+    result = %Tdex.Result{code: dataQuery["code"], req_id: dataQuery["req_id"], rows: [], affected_rows: dataQuery["affected_rows"], message: dataQuery["message"]}
+    {:reply, {:ok, result}, state}
+  end
+
+  defp handle_query({:ok, dataQuery}, state) do
+    case Rows.read_row(state.pidWS, dataQuery, state.timeout) do
+      {:ok, rows} ->
+        result = %Tdex.Result{code: dataQuery["code"], req_id: dataQuery["req_id"], rows: rows, affected_rows: dataQuery["affected_rows"], message: dataQuery["message"]}
+        {:reply, {:ok, result}, state}
+      {:error, _} = error -> {:reply, error, state}
+    end
   end
 
   def handle_info({:gun_down, _, :ws, :closed, []}, state) do
