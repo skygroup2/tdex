@@ -30,6 +30,9 @@ typedef struct {
   TAOS_FIELD* taos_field;
 } taos_field_t;
 
+void taos_select_call_back(void *param, TAOS_RES *res, int code);
+void taos_retrieve_call_back(void *param, TAOS_RES *res, int code);
+
 /* BASIC API TAOS */
 static ERL_NIF_TERM taos_connect_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
   if (argc != 5) {
@@ -312,17 +315,28 @@ static ERL_NIF_TERM taos_errno_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
   if(err_no == 0) return enif_make_tuple2(env, atom_ok, enif_make_int(env, err_no));
   return enif_make_tuple2(env, atom_error, enif_make_int(env, err_no));
 }
-// extern void query_callback(void *param, TAOS_RES *res, int code);
 
 /* Asynchronous APIs */
+void taos_select_call_back(void *param, TAOS_RES *res, int code)
+{
+  if (code == 0 && res) {
+    taos_fetch_rows_a(res, taos_retrieve_call_back, param);
+  }
+  else {
+    taos_free_result(res);
+    taos_cleanup();
+    // return enif_make_tuple2(env, atom_error, enif_make_string(env, taos_errstr(res)));
+  }
+}
 
 static ERL_NIF_TERM taos_query_a_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
-  if (argc != 4) {
+  if (argc != 2) {
     return enif_make_badarg(env);
   }
 
   taos_t* taos_ptr = NULL;
   char sql[256];
+
   if(!enif_get_resource(env, argv[0], TAOS_TYPE, (void**) &taos_ptr)){
     return enif_make_tuple2(env, atom_error, atom_invalid_resource);
   };
@@ -331,11 +345,34 @@ static ERL_NIF_TERM taos_query_a_nif(ErlNifEnv* env, int argc, const ERL_NIF_TER
     return enif_make_badarg(env);
   };
 
-  taos_query_a(taos_ptr->taos, sql, NULL, NULL);
+  taos_query_a(taos_ptr->taos, sql, taos_select_call_back, NULL);
   return enif_make_tuple1(env, atom_ok);
 }
 
+void taos_retrieve_call_back(void *param, TAOS_RES *res, int numOfRows)
+{
+  if (numOfRows > 0) {
+    taos_fetch_rows_a(res, taos_retrieve_call_back, param);
+  }
+  else {
+    taos_free_result(res);
+  }
+}
 
+static ERL_NIF_TERM taos_fetch_rows_a_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 1) {
+    return enif_make_badarg(env);
+  }
+
+  taos_t* taos_ptr = NULL;
+
+  if(!enif_get_resource(env, argv[0], TAOS_TYPE, (void**) &taos_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+
+  taos_fetch_rows_a(taos_ptr->taos, taos_retrieve_call_back, NULL);
+  return enif_make_tuple1(env, atom_ok);
+}
 
 static void free_taos_resource(ErlNifEnv* env, void* obj) {
 
@@ -389,7 +426,8 @@ static ErlNifFunc nif_funcs[] = {
   {"taos_errstr", 1, taos_errstr_nif},
   {"taos_errno", 1, taos_errno_nif},
   {"taos_fetch_row", 1, taos_fetch_row_nif},
-  {"taos_query_a", 4, taos_query_a_nif},
+  {"taos_query_a", 2, taos_query_a_nif},
+  {"taos_fetch_rows_a", 1, taos_fetch_rows_a_nif},
 };
 
 ERL_NIF_INIT(Elixir.Tdex.Wrapper, nif_funcs, init_nif, NULL, NULL, NULL)
