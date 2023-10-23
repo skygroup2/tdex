@@ -2,7 +2,7 @@ defmodule Tdex.Ets do
   @name_table :tdex
   @req_id :req_id
 
-   def create_table() do
+  def create_table() do
     case :ets.info(@name_table) do
       :undefined ->
         :ets.new(@name_table,

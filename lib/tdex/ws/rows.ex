@@ -15,7 +15,7 @@ defmodule Tdex.WS.Rows do
     {:ok, data}
   end
 
-  defp handle_fetch(pid, dataQuery, timeout, {:ok, dataFetch}, data) do
+  defp handle_fetch(pid, dataQuery, timeout, {:ok, _}, data) do
     case Connection.fetch_block(pid, dataQuery["id"], timeout) do
       {:ok, dataBlock} ->
         result = Binary.parse_block(dataBlock, dataQuery["fields_names"])

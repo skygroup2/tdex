@@ -46,15 +46,15 @@ defmodule Tdex.WS.Socket do
 
   defp handle_query({:ok, %{"fields_lengths" => nil} = dataQuery}, state) do
     result = %Tdex.Result{code: dataQuery["code"], req_id: dataQuery["req_id"], rows: [], affected_rows: dataQuery["affected_rows"], message: dataQuery["message"]}
-    {:reply, {:ok, result}, state}
+    {:reply, {:ok, result}, state, :hibernate}
   end
 
   defp handle_query({:ok, dataQuery}, state) do
     case Rows.read_row(state.pidWS, dataQuery, state.timeout) do
       {:ok, rows} ->
         result = %Tdex.Result{code: dataQuery["code"], req_id: dataQuery["req_id"], rows: rows, affected_rows: dataQuery["affected_rows"], message: dataQuery["message"]}
-        {:reply, {:ok, result}, state}
-      {:error, _} = error -> {:reply, error, state}
+        {:reply, {:ok, result}, state, :hibernate}
+      {:error, _} = error -> {:reply, error, state, :hibernate}
     end
   end
 
