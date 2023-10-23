@@ -40,7 +40,7 @@ defmodule Tdex.WS.Socket do
     handle_query(query, state)
   end
 
-  defp handle_query({:error, reason} = error, state) do
+  defp handle_query({:error, _reason} = error, state) do
     {:reply, error, state}
   end
 
