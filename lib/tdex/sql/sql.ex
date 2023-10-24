@@ -12,15 +12,16 @@ defmodule Tdex.Sql do
 
   def query(conn, statement) do
     {:ok, res} = Wrapper.taos_query(conn, ~c(#{statement}))
-    case Wrapper.taos_errno(res) do
-      {:ok, _} ->
-        {:ok, field} = Wrapper.taos_fetch_fields(res)
-        fieldNames = Binary.parse_field(field, [])
-        Rows.read_row(res, fieldNames)
-      {:error, errNo} ->
+    with {:ok, _} <- Wrapper.taos_errno(res),
+         {:ok, fields} <- Wrapper.taos_fetch_fields(res)
+    do
+      fieldNames = Binary.parse_field(fields, [])
+      Rows.read_row(res, fieldNames)
+    else
+      {:error, _} ->
         Wrapper.taos_free_result(res)
         {:ok, msgErr} = Wrapper.taos_errstr(res)
-        {:error, %Tdex.Error{code: errNo, message: msgErr}}
+        {:error, %Tdex.Error{message: msgErr}}
     end
   end
 
