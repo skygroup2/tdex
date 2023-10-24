@@ -5,12 +5,12 @@ defmodule Tdex.WS.Rows do
     with {:ok, %{"completed" => false}} <- Connection.fetch(pid, dataQuery["id"], timeout),
          {:ok, dataBlock} <- Connection.fetch_block(pid, dataQuery["id"], timeout)
     do
-      result = Binary.parse_block(dataBlock, dataQuery["fields_names"])
-      read_row(pid, dataQuery, timeout, result ++ data)
+      result = Binary.parse_block(dataBlock, dataQuery["fields_names"], data)
+      read_row(pid, dataQuery, timeout, result)
     else
       {:ok, _} ->
         Connection.free_result(pid, dataQuery["id"])
-        {:ok, data}
+        {:ok, Enum.reverse(data)}
       {:error, reason} -> {:error, reason}
     end
   end

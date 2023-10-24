@@ -8,16 +8,16 @@ defmodule Tdex.Binary do
     parse_field(res, [v|result])
   end
 
-  def parse_block(<<_::binary-size(20), _len::32-little, rows::32-little, cols::32-little, _::binary-size(12), fields::binary-size(5*cols), blockSize::binary-size(cols*4), data::binary>>, fieldNames) do
+  def parse_block(<<_::binary-size(20), _len::32-little, rows::32-little, cols::32-little, _::binary-size(12), fields::binary-size(5*cols), blockSize::binary-size(cols*4), data::binary>>, fieldNames, result) do
     {"", "", headers} =
       Enum.reduce(fieldNames, {fields, blockSize, []}, fn name, {<<type, size::32-little, rest1::binary>>, <<blockSize::32-little, rest2::binary>>, acc} ->
         {rest1, rest2, [%{type: type, size: size, block_size: blockSize, name: name}|acc]}
       end)
     bitMapSize = Bitwise.bsr(rows + 7, 3)
     parse_entry(Enum.reverse(headers), rows, bitMapSize, data, [])
-      |> List.zip()
-      |> Enum.map(fn x -> Enum.zip(fieldNames, Tuple.to_list(x)) end)
-      |> Enum.map(fn x -> Map.new(x) end)
+    |> List.zip()
+    |> Enum.map(fn x -> Enum.zip(fieldNames, Tuple.to_list(x)) end)
+    |> Enum.reduce(result, fn x, acc -> [Map.new(x)|acc] end)
   end
 
   def parse_entry([], _, _, <<>>, acc), do: Enum.reverse(acc)
