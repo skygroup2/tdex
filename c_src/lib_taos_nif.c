@@ -116,11 +116,15 @@ static ERL_NIF_TERM taos_query_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
 
   taos_t* taos_ptr = NULL;
   taos_res_t* res_ptr = NULL;
-  char sql[256];
+  
 
   if(!enif_get_resource(env, argv[0], TAOS_TYPE, (void**) &taos_ptr)){
     return enif_make_tuple2(env, atom_error, atom_invalid_resource);
   };
+
+  unsigned sql_length;
+  enif_get_list_length(env, argv[1], &sql_length);
+  char sql[sql_length+1];
 
   if(!enif_get_string(env, argv[1], sql, sizeof(sql), ERL_NIF_LATIN1)){
     return enif_make_badarg(env);
