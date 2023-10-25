@@ -36,8 +36,17 @@ typedef struct {
   TAOS_FIELD* taos_field;
 } taos_field_t;
 
-void taos_select_call_back(void *param, TAOS_RES *res, int code);
+void taos_query_call_back(void *param, TAOS_RES *res, int code);
 void taos_retrieve_call_back(void *param, TAOS_RES *res, int code);
+
+param_t *create_param(ErlNifEnv *env, ErlNifEnv *send_env, ErlNifPid *pid){
+  param_t *p = (param_t*) malloc(sizeof(param_t));
+  p->env = env;
+  p->send_env = send_env;
+  p->pid = pid;
+
+  return p;
+}
 
 /* BASIC API TAOS */
 static ERL_NIF_TERM taos_connect_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
@@ -323,18 +332,19 @@ static ERL_NIF_TERM taos_errno_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
 }
 
 /* Asynchronous APIs */
-void taos_select_call_back(void *param, TAOS_RES *res, int code)
+void taos_query_call_back(void *param, TAOS_RES *res, int code)
 {
   param_t *p = (param_t *)param;
   if (code == 0 && res) {
-    taos_fetch_rows_a(res, taos_retrieve_call_back, param);
+    // enif_send(p->env, p->pid, p->send_env, NULL);
+    // taos_fetch_rows_a(res, taos_retrieve_call_back, param);
   }
   else {
+    const char* err_str = taos_errstr(res);
+    ERL_NIF_TERM error = enif_make_tuple2(p->env, atom_error, enif_make_string(p->env, err_str, ERL_NIF_LATIN1));
     taos_free_result(res);
     taos_cleanup();
-    const char* err_str = taos_errstr(res);
-    ERL_NIF_TERM res = enif_make_tuple2(p->env, atom_error, enif_make_string(p->env, err_str, ERL_NIF_LATIN1));
-    enif_send(p->env, p->pid, p->send_env, res);
+    enif_send(p->env, p->pid, p->send_env, error);
   }
 }
 
@@ -359,12 +369,13 @@ static ERL_NIF_TERM taos_query_a_nif(ErlNifEnv* env, int argc, const ERL_NIF_TER
     return enif_make_badarg(env);
   }
 
-  param_t *p = (param_t*) malloc(sizeof(param_t));
-  p->env = env;
-  p->send_env = NULL;
-  p->pid = &pid;
+  // param_t *p = (param_t*) malloc(sizeof(param_t));
+  // p->env = env;
+  // p->send_env = NULL;
+  // p->pid = &pid;
 
-  taos_query_a(taos_ptr->taos, sql, taos_select_call_back, p);
+  param_t *p = create_param(env, NULL, &pid);
+  taos_query_a(taos_ptr->taos, sql, taos_query_call_back, p);
   return enif_make_tuple1(env, atom_ok);
 }
 
