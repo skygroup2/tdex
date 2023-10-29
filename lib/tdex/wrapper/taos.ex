@@ -64,7 +64,11 @@ defmodule Tdex.Wrapper do
   end
 
   def taos_fetch_raw_block_a(_res, _a) do
-    raise "taos_fetch_rows_a not implemented"
+    raise "taos_fetch_raw_block_a not implemented"
+  end
+
+  def taos_get_raw_block(_res) do
+    raise "taos_get_raw_block not implemented"
   end
 
   def taos_close(_connect) do
