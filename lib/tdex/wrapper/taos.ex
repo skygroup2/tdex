@@ -55,7 +55,7 @@ defmodule Tdex.Wrapper do
     raise "taos_fetch_row not implemented"
   end
 
-  def taos_query_a(_connect, _sql, _pid) do
+  def taos_query_a(_connect, _req_id, _sql, _pid) do
     raise "taos_query_a not implemented"
   end
 
@@ -63,7 +63,7 @@ defmodule Tdex.Wrapper do
     raise "taos_fetch_rows_a not implemented"
   end
 
-  def taos_fetch_raw_block_a(_res, _a) do
+  def taos_fetch_raw_block_a(_res, _req_id, _pid) do
     raise "taos_fetch_raw_block_a not implemented"
   end
 

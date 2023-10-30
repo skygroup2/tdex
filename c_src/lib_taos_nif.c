@@ -19,6 +19,7 @@ static ERL_NIF_TERM fetch_raw_async;
 
 typedef struct {
   ErlNifPid pid;
+  ERL_NIF_TERM req_id;
 } param_t;
 
 typedef struct {
@@ -40,9 +41,10 @@ typedef struct {
 void taos_query_call_back(void *param, TAOS_RES *res, int code);
 void taos_fetch_raw_call_back(void *param, TAOS_RES *res, int code);
 
-param_t *create_param(ErlNifPid pid){
+param_t *create_param(ErlNifEnv* env, ErlNifPid pid, int req_id){
   param_t *p = (param_t*) malloc(sizeof(param_t));
   p->pid = pid;
+  p->req_id = enif_make_int(env, req_id);
   return p;
 }
 
@@ -340,7 +342,7 @@ void taos_query_call_back(void *param, TAOS_RES *res, int code)
     res_ptr->taos_res = res;
     ERL_NIF_TERM res = enif_make_resource(env, res_ptr);
     enif_release_resource(res_ptr);
-    enif_send(NULL, &p->pid, env, enif_make_tuple2(env, atom_res_async, res));
+    enif_send(NULL, &p->pid, env, enif_make_tuple3(env, atom_res_async, p->req_id, res));
   }
   else {
     const char* err_str = taos_errstr(res);
@@ -355,11 +357,12 @@ void taos_query_call_back(void *param, TAOS_RES *res, int code)
 }
 
 static ERL_NIF_TERM taos_query_a_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
-  if (argc != 3) {
+  if (argc != 4) {
     return enif_make_badarg(env);
   }
 
   taos_t* taos_ptr = NULL;
+  int req_id;
   char sql[256];
   ErlNifPid pid;
 
@@ -367,15 +370,19 @@ static ERL_NIF_TERM taos_query_a_nif(ErlNifEnv* env, int argc, const ERL_NIF_TER
     return enif_make_tuple2(env, atom_error, atom_invalid_resource);
   };
 
-  if(!enif_get_string(env, argv[1], sql, sizeof(sql), ERL_NIF_LATIN1)){
+  if(!enif_get_int(env, argv[1], &req_id)){
     return enif_make_badarg(env);
   };
 
-  if(!enif_get_local_pid(env, argv[2], &pid)) {
+  if(!enif_get_string(env, argv[2], sql, sizeof(sql), ERL_NIF_LATIN1)){
+    return enif_make_badarg(env);
+  };
+
+  if(!enif_get_local_pid(env, argv[3], &pid)) {
     return enif_make_badarg(env);
   }
 
-  param_t *p = create_param(pid);
+  param_t *p = create_param(env, pid, req_id);
   taos_query_a(taos_ptr->taos, sql, taos_query_call_back, p);
   return enif_make_tuple1(env, atom_ok);
 }
@@ -384,28 +391,33 @@ void taos_fetch_raw_call_back(void *param, TAOS_RES *res, int numRows) {
   param_t *p = (param_t *)param;
   ErlNifEnv *env = enif_alloc_env();
   ERL_NIF_TERM numOfRows = enif_make_int(env, numRows);
-  enif_send(NULL, &p->pid, env, enif_make_tuple2(env, fetch_raw_async, numOfRows));
+  enif_send(NULL, &p->pid, env, enif_make_tuple3(env, fetch_raw_async, p->req_id, numOfRows));
   enif_free_env(env);
   free(p);
 }
 
 static ERL_NIF_TERM taos_fetch_raw_block_a_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
-  if (argc != 2) {
+  if (argc != 3) {
     return enif_make_badarg(env);
   }
 
   taos_res_t* res_ptr = NULL;
+  int req_id;
   ErlNifPid pid;
 
   if(!enif_get_resource(env, argv[0], TAOS_RES_TYPE, (void**) &res_ptr)){
     return enif_make_tuple2(env, atom_error, atom_invalid_resource);
   };
 
-  if(!enif_get_local_pid(env, argv[1], &pid)) {
+  if(!enif_get_int(env, argv[1], &req_id)){
+    return enif_make_badarg(env);
+  };
+
+  if(!enif_get_local_pid(env, argv[2], &pid)) {
     return enif_make_badarg(env);
   }
 
-  param_t *p = create_param(pid);
+  param_t *p = create_param(env, pid, req_id);
   taos_fetch_raw_block_a(res_ptr->taos_res, taos_fetch_raw_call_back, p);
   return enif_make_tuple1(env, atom_ok);
 }
@@ -491,8 +503,8 @@ static ErlNifFunc nif_funcs[] = {
   {"taos_errstr", 1, taos_errstr_nif},
   {"taos_errno", 1, taos_errno_nif},
   {"taos_fetch_row", 1, taos_fetch_row_nif},
-  {"taos_query_a", 3, taos_query_a_nif},
-  {"taos_fetch_raw_block_a", 2, taos_fetch_raw_block_a_nif},
+  {"taos_query_a", 4, taos_query_a_nif},
+  {"taos_fetch_raw_block_a", 3, taos_fetch_raw_block_a_nif},
   {"taos_get_raw_block", 1, taos_get_raw_block_nif}
 };
 

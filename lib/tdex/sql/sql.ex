@@ -2,27 +2,24 @@ defmodule Tdex.Sql do
   alias Tdex.{Wrapper, Binary, Sql.Rows}
 
   def connect(opts) do
-    hostname = ~c(#{opts.hostname})
-    username = ~c(#{opts.username})
-    password = ~c(#{opts.password})
-    database = ~c(#{opts.database})
-    port = opts.port
-    Wrapper.taos_connect(hostname, username, password, database, port)
+    res = GenServer.start_link(Tdex.SQL.Async, opts);
+    IO.inspect{:check, res}
+    res
   end
 
   def query(conn, statement) do
-    {:ok, res} = Wrapper.taos_query(conn, ~c(#{statement}))
-    with {:ok, _} <- Wrapper.taos_errno(res),
-         {:ok, fields} <- Wrapper.taos_fetch_fields(res)
-    do
-      fieldNames = Binary.parse_field(fields, [])
-      Rows.read_row(res, fieldNames)
-    else
-      {:error, _} ->
-        Wrapper.taos_free_result(res)
-        {:ok, msgErr} = Wrapper.taos_errstr(res)
-        {:error, %Tdex.Error{message: msgErr}}
-    end
+    Tdex.SQL.Async.query_async(conn, statement)
+    # {:ok, res} = Wrapper.taos_query(conn, ~c(#{statement}))
+    # case Wrapper.taos_errno(res) do
+    #   {:ok, _} ->
+    #     {:ok, field} = Wrapper.taos_fetch_fields(res)
+    #     fieldNames = Binary.parse_field(field, [])
+    #     Rows.read_row(res, fieldNames)
+    #   {:error, errNo} ->
+    #     Wrapper.taos_free_result(res)
+    #     {:ok, msgErr} = Wrapper.taos_errstr(res)
+    #     {:error, %Tdex.Error{code: errNo, message: msgErr}}
+    # end
   end
 
   def stop(conn) do

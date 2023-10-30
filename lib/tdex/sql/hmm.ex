@@ -24,22 +24,23 @@ defmodule Tdex.Async do
 
   def handle_call({:query_a, sql}, from, state) do
     { ok, connect } = Tdex.Wrapper.taos_connect('localhost', 'root', 'taosdata', 'test', 6030)
-    Tdex.Wrapper.taos_query_a(connect, sql, self())
+    Tdex.Wrapper.taos_query_a(connect, 1, sql, self())
     # IO.inspect(from)
-    Process.send_after(self(), {:reply, from}, 1_000_000)
+    #Process.send_after(self(), {:reply, from}, 1_000_000)
     {:noreply, %{state| from: from}}
   end
 
-  def handle_info({:res_async, res}, state) do
+  def handle_info({:res_async, req_id, res}, state) do
+    IO.puts("res_async #{req_id}")
     {:ok, field} = Wrapper.taos_fetch_fields(res)
     fieldNames = Binary.parse_field(field, [])
 
-    Tdex.Wrapper.taos_fetch_raw_block_a(res, self())
+    Tdex.Wrapper.taos_fetch_raw_block_a(res, 2, self())
     {:noreply, %{state| fieldNames: fieldNames, res: res}}
   end
 
-  def handle_info({:fetch_raw_async, numOfRows}, state) do
-    IO.puts("fetch_raw_async #{numOfRows}")
+  def handle_info({:fetch_raw_async, req_id, numOfRows}, state) do
+    IO.puts("fetch_raw_async #{req_id} - #{numOfRows}")
 
     if(numOfRows == 0) do
       :ok = Wrapper.taos_free_result(state.res)
@@ -51,7 +52,7 @@ defmodule Tdex.Async do
       padding = <<0::size(128)>>
       dataBlock = <<padding::binary, bin::binary>>
       result = Binary.parse_block(dataBlock, state.fieldNames)
-      Tdex.Wrapper.taos_fetch_raw_block_a(state.res, self())
+      Tdex.Wrapper.taos_fetch_raw_block_a(state.res, 3, self())
       temp = state.result
       {:noreply, %{state | result: temp ++ result}}
     end
