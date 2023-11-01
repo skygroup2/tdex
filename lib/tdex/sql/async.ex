@@ -8,7 +8,8 @@ defmodule Tdex.SQL.Async do
     GenServer.start_link(__MODULE__, opts);
   end
 
-  def query_async(pid, statement), do: GenServer.call(pid, {:query_async, statement})
+  def query_async(pid, statement, timeout \\ 5000), do: GenServer.call(pid, {:query_async, statement}, timeout)
+  def stop(pid), do: GenServer.cast(pid, :stop)
 
   def init(opts) do
     state = %{
@@ -52,10 +53,9 @@ defmodule Tdex.SQL.Async do
       {:ok, bin} = Tdex.Wrapper.taos_get_raw_block(state.res)
       padding = <<0::size(128)>>
       dataBlock = <<padding::binary, bin::binary>>
-      rows = Binary.parse_block(dataBlock, state.fieldNames)
+      result = Binary.parse_block(dataBlock, state.fieldNames, state.result)
       Tdex.Wrapper.taos_fetch_raw_block_a(state.res, req_id, self())
-      temp = state.result
-      {:noreply, %{state | result: temp ++ result}}
+      {:noreply, %{state | result: result}}
     end
   end
 
@@ -64,4 +64,8 @@ defmodule Tdex.SQL.Async do
     {:noreply, state}
   end
 
+  def handle_cast(:stop, state) do
+    Wrapper.taos_close(state.conn)
+    Wrapper.taos_cleanup()
+  end
 end
