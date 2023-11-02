@@ -341,14 +341,13 @@ void taos_query_call_back(void *param, TAOS_RES *res, int code)
     taos_res_t* res_ptr = (taos_res_t*)enif_alloc_resource(TAOS_RES_TYPE, sizeof(taos_res_t));
     res_ptr->taos_res = res;
     ERL_NIF_TERM res = enif_make_resource(env, res_ptr);
-    enif_release_resource(res_ptr);
     enif_send(NULL, &p->pid, env, enif_make_tuple3(env, atom_res_async, p->req_id, res));
+    enif_release_resource(res_ptr);
   }
   else {
     const char* err_str = taos_errstr(res);
-    ERL_NIF_TERM error = enif_make_tuple2(env, atom_error, enif_make_string(env, err_str, ERL_NIF_LATIN1));
+    ERL_NIF_TERM error = enif_make_tuple3(env, atom_error, p->req_id, enif_make_string(env, err_str, ERL_NIF_LATIN1));
     taos_free_result(res);
-    taos_cleanup();
     enif_send(NULL, &p->pid, env, error);
   }
 
@@ -363,8 +362,8 @@ static ERL_NIF_TERM taos_query_a_nif(ErlNifEnv* env, int argc, const ERL_NIF_TER
 
   taos_t* taos_ptr = NULL;
   int req_id;
-  char sql[256];
   ErlNifPid pid;
+
 
   if(!enif_get_resource(env, argv[0], TAOS_TYPE, (void**) &taos_ptr)){
     return enif_make_tuple2(env, atom_error, atom_invalid_resource);
@@ -373,6 +372,10 @@ static ERL_NIF_TERM taos_query_a_nif(ErlNifEnv* env, int argc, const ERL_NIF_TER
   if(!enif_get_int(env, argv[1], &req_id)){
     return enif_make_badarg(env);
   };
+
+  unsigned sql_length;
+  enif_get_list_length(env, argv[1], &sql_length);
+  char sql[sql_length+1];
 
   if(!enif_get_string(env, argv[2], sql, sizeof(sql), ERL_NIF_LATIN1)){
     return enif_make_badarg(env);

@@ -20,13 +20,18 @@ defmodule Tdex.SQL.Async do
       from: nil
     }
 
-    hostname = ~c(#{opts.hostname})
-    username = ~c(#{opts.username})
-    password = ~c(#{opts.password})
-    database = ~c(#{opts.database})
-    port = opts.port
+    # hostname = ~c(#{opts.hostname})
+    # username = ~c(#{opts.username})
+    # password = ~c(#{opts.password})
+    # database = ~c(#{opts.database})
+    # port = opts.port
 
-    case Tdex.Wrapper.taos_connect(hostname, username, password, database, port) do
+    # case Tdex.Wrapper.taos_connect(hostname, username, password, database, port) do
+    #   {:ok, conn} -> {:ok, %{state | conn: conn}}
+    #   {:error, reason} ->  {:stop, reason}
+    # end
+
+    case Tdex.Wrapper.taos_connect('localhost', 'root', 'taosdata', 'test', 6030) do
       {:ok, conn} -> {:ok, %{state | conn: conn}}
       {:error, reason} ->  {:stop, reason}
     end
@@ -57,6 +62,11 @@ defmodule Tdex.SQL.Async do
       Tdex.Wrapper.taos_fetch_raw_block_a(state.res, req_id, self())
       {:noreply, %{state | result: result}}
     end
+  end
+
+  def handle_info({:error, req_id, reason}, state) do
+    GenServer.reply(state.from, {:error, reason})
+    {:noreply, state}
   end
 
   def handle_info(msg, state) do
