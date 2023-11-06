@@ -20,18 +20,13 @@ defmodule Tdex.SQL.Async do
       from: nil
     }
 
-    # hostname = ~c(#{opts.hostname})
-    # username = ~c(#{opts.username})
-    # password = ~c(#{opts.password})
-    # database = ~c(#{opts.database})
-    # port = opts.port
+    hostname = ~c(#{opts.hostname})
+    username = ~c(#{opts.username})
+    password = ~c(#{opts.password})
+    database = ~c(#{opts.database})
+    port = opts.port
 
-    # case Tdex.Wrapper.taos_connect(hostname, username, password, database, port) do
-    #   {:ok, conn} -> {:ok, %{state | conn: conn}}
-    #   {:error, reason} ->  {:stop, reason}
-    # end
-
-    case Tdex.Wrapper.taos_connect('localhost', 'root', 'taosdata', 'test', 6030) do
+    case Tdex.Wrapper.taos_connect(hostname, username, password, database, port) do
       {:ok, conn} -> {:ok, %{state | conn: conn}}
       {:error, reason} ->  {:stop, reason}
     end
