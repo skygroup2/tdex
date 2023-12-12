@@ -14,6 +14,11 @@ defmodule Tdex do
     DBConnection.start_link(Tdex.DBConnection, opts)
   end
 
+  def start_link(opts) do
+    opts = default_opts(opts)
+    DBConnection.start_link(Tdex.DBConnection, opts)
+  end
+
   def query(conn, statement, params, opts \\ []) do
     query = %Query{name: "", statement: statement}
     case DBConnection.prepare_execute(conn, query, params, opts) do
