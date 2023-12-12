@@ -27,6 +27,10 @@ defmodule Tdex.Wrapper do
     raise "taos_field_count not implemented"
   end
 
+  def taos_affected_rows(_res) do
+    raise "taos_field_count not implemented"
+  end
+
   def taos_print_row(_row, _field, _num_fields) do
     raise "taos_print_row not implemented"
   end

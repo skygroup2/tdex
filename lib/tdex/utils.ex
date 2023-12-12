@@ -16,7 +16,7 @@ defmodule Tdex.Utils do
   defp normalize_port(port) when is_binary(port), do: String.to_integer(port)
   defp normalize_port(port), do: port
 
-  defp handle_protocol("native"), do: Tdex.Sql
+  defp handle_protocol("native"), do: Tdex.Native
   defp handle_protocol("ws"), do: Tdex.WS
 
   defp default_port("native"), do: 6030
