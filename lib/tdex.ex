@@ -9,8 +9,8 @@ defmodule Tdex do
     Supervisor.start_link([], strategy: :one_for_one)
   end
 
-  def start_link(opts) do
-    opts = default_opts(opts)
+  def start_link() do
+    opts = Application.get_env(:tdex, Tdex.Repo) |> default_opts()
     DBConnection.start_link(Tdex.DBConnection, opts)
   end
 

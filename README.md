@@ -7,42 +7,34 @@ Documentation:
 ## Note (when use native connection)
 - [Install Client Driver](https://docs.tdengine.com/reference/connector/#Install-Client-Driver)
 
-## Native connection
-```iex
-iex> {:ok, pid} = Tdex.start_link(protocol: "sql", hostname: "localhost", port: 6030, username: "root", password: "taosdata", database: "test", pool_size: 1)
-{:ok, #PID<0.69.0>}
+## Config
+Where the configuration for the Repo must be in your application environment, usually defined in your config/config.exs
 
-iex> Tdex.query!(pid, "SELECT ts,bid  FROM tick LIMIT 10", [])
-%Tdex.Result{
-  code: 0,
-  req_id: 2,
-  rows: [%{"bid" => 1091.752, "ts" => ~U[2015-08-09 17:00:00.000Z]}],
-  affected_rows: 0,
-  message: ""
-}
+```elixir
+# native connect
+config :tdex, Tdex.Repo,
+  protocol: "native",
+  username: "root",
+  database: "test",
+  hostname: "127.0.0.1",
+  password: "taosdata",
+  port: 6030,
+  pool_size: 16
 
-iex> Tdex.query!(pid, "SELECT ts,bid FROM tick WHERE bid = ? AND ask = ? LIMIT 10", [1, 2])
-%Tdex.Result{code: 0, req_id: 3, rows: [], affected_rows: 0, message: ""}
+# ws connect
+config :tdex, Tdex.Repo,
+  protocol: "ws",
+  username: "root",
+  database: "test",
+  hostname: "127.0.0.1",
+  password: "taosdata",
+  port: 6041,
+  timeout: 1000,
+  pool_size: 16
 ```
-## Websocket connection
-
-### API
-1. Tdex.start_link(opts)
-
-- opts: 
-  - protocol: protocol
-  - hostname: host tdengine
-  - port: port tdengine
-  - username: username tdengine
-  - password: password tdengine
-  - database: database tdengine
-  - pool_size: connect pool size
-  - timeout: timeout ws
-### Example
-
+## Examples
 ```iex
-iex> {:ok, pid} = Tdex.start_link(protocol: "ws", hostname: "localhost", port: 6041, username: "root", password: "taosdata", database: "test", pool_size: 1)
-{:ok, #PID<0.69.0>}
+iex> {:ok, pid} = Tdex.start_link()
 
 iex> Tdex.query!(pid, "SELECT ts,bid  FROM tick LIMIT 10", [])
 %Tdex.Result{
@@ -65,4 +57,9 @@ Tdex comes with JSON support out of the box via the [Jason](https://github.com/m
 
 ```elixir
 {:jason, "~> 1.4"}
+```
+
+# Install
+```elixir
+{:tdex, git: "git@github.com:skygroup2/tdex.git", branch: "dev"},
 ```
