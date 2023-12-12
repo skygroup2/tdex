@@ -33,10 +33,19 @@ config :tdex, Tdex.Repo,
   pool_size: 16
 ```
 ## Examples
-```iex
-iex> {:ok, pid} = Tdex.start_link()
 
-iex> Tdex.query!(pid, "SELECT ts,bid  FROM tick LIMIT 10", [])
+### 1. Connect Tdengine
+```iex
+iex> {:ok, pid} = Tdex.start_link(protocol: "native", hostname: "localhost", port: 6030, username: "root", password: "taosdata", database: "test", pool_size: 1)
+
+OR
+
+iex> {:ok, pid} = Tdex.start_link()
+```
+
+### 2. Query
+```iex
+iex> Tdex.query!(pid, "SELECT ts,bid FROM tick LIMIT 10", [])
 %Tdex.Result{
   code: 0,
   req_id: 2,

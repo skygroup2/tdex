@@ -34,7 +34,7 @@ defmodule Tdex.MixProject do
   defp deps do
     [
       {:skn_lib, git: "git@github.com:skygroup2/skn_lib.git", branch: "main"},
-      {:gun, git: "git@github.com:skygroup2/gun.git", branch: "master"},
+      {:gun, git: "https://github.com/skygroup2/gun.git", branch: "master"},
       {:elixir_make, "~> 0.7.7", runtime: false},
       {:jason, "~> 1.4"},
       {:db_connection, "~> 2.1"},

@@ -19,6 +19,4 @@ defmodule Tdex.Native.Rows do
       {:error, reason} -> {:error, reason}
     end
   end
-
-
 end
