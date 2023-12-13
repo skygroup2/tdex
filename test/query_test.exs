@@ -2,6 +2,7 @@ defmodule QueryTest do
   use ExUnit.Case
   import Tdex.TestHelper
   alias Tdex, as: T
+  use Timestamp
 
   setup context do
     opts = [
@@ -12,6 +13,27 @@ defmodule QueryTest do
 
     {:ok, pid} = T.start_link(opts)
     {:ok, [pid: pid, options: opts]}
+  end
+
+  test "test timestamp" do
+    t = 1702377891907976277
+    t1 = ~TS[2023-12-12 10:44:51.907976277Z]
+    a = Timestamp.from_unix(t, :nanosecond)
+    assert t1 == a
+    assert t == Timestamp.to_unix(a, :nanosecond)
+    t1 = ~TS[2023-12-12 10:44:52.907976277Z]
+    assert t1 == Timestamp.add(a, 1_000_000_000, :nanosecond)
+    t1 = ~TS[2023-12-12 10:44:51.907976278Z]
+    assert t1 == Timestamp.add(a, 1, :nanosecond)
+    t1 = ~TS[2023-12-12 10:45:00.907976277Z]
+    assert t1 == Timestamp.add(a, 9, :second)
+    t1 = ~TS[2023-12-12 11:04:51.907976277Z]
+    assert t1 == Timestamp.add(a, 20, :minute)
+    t1 = ~TS[2023-12-13 06:44:51.907976277Z]
+    assert t1 == Timestamp.add(a, 20, :hour)
+    t1 = ~TS[2024-01-01 10:44:51.907976277Z]
+    assert t1 == Timestamp.add(a, 20, :day)
+    assert Timestamp.to_string(t1) == "2024-01-01 10:44:51.907976277Z"
   end
 
   test "decode basic types", context do
