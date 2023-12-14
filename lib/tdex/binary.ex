@@ -14,27 +14,29 @@ defmodule Tdex.Binary do
         {rest1, rest2, [%{type: type, size: size, block_size: blockSize, name: name}|acc]}
       end)
     bitMapSize = Bitwise.bsr(rows + 7, 3)
-    parse_entry(Enum.reverse(headers), rows, bitMapSize, precision, data, [])
-    |> List.zip()
-    |> Enum.map(fn x -> Enum.zip(fieldNames, Tuple.to_list(x)) end)
-    |> Enum.reduce(result, fn x, acc -> [Map.new(x)|acc] end)
+    {^rows, ret} =
+      Enum.reverse(headers)
+      |> parse_entry(rows, bitMapSize, data, [])
+      |> Enum.zip_reduce({0, result}, fn rows, {cnt, acc} ->
+        {cnt + 1, [Enum.zip(fieldNames, rows) |> Map.new()|acc]}
+      end)
+    ret
   end
 
+  @spec parse_entry(
+          [%{:block_size => non_neg_integer, :type => any, optional(any) => any}],
+          integer,
+          integer,
+          integer,
+          binary,
+          list
+        ) :: list
   def parse_entry([], _, _, _precision, <<>>, acc), do: Enum.reverse(acc)
   def parse_entry([%{type: type, block_size: blockSize}|fields], rows, bitMapSize, precision, data, acc) when type in [8, 10, 15, 16] do
     <<offsets::binary-size(4*rows), data::binary-size(blockSize), bin::binary>> = data
     cols = parse_list1(offsets, data, type, precision, [])
     parse_entry(fields, rows, bitMapSize, precision, bin, [cols|acc])
   end
-
-  @spec parse_entry(
-          [%{:block_size => non_neg_integer, :type => any, optional(any) => any}],
-          integer,
-          any,
-          integer,
-          binary,
-          any
-        ) :: list
   def parse_entry([%{type: type, block_size: blockSize}|fields], rows, bitMapSize, precision, data, acc) do
     <<bitMaps::binary-size(bitMapSize), data::binary-size(blockSize), bin::binary>> = data
     cols = parse_list(bitMaps, data, type, precision, 0, [])
