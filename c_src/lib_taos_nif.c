@@ -150,6 +150,20 @@ static ERL_NIF_TERM taos_affected_rows_nif(ErlNifEnv* env, int argc, const ERL_N
   return enif_make_tuple2(env, atom_ok, enif_make_int(env, affected_rows));
 }
 
+static ERL_NIF_TERM taos_result_precision_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 1) {
+    return enif_make_badarg(env);
+  }
+
+  taos_res_t* res_ptr = NULL;
+  if(!enif_get_resource(env, argv[0], TAOS_RES_TYPE, (void**) &res_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+
+  int precision = taos_result_precision(res_ptr->taos_res);
+  return enif_make_tuple2(env, atom_ok, enif_make_int(env, precision));
+}
+
 static ERL_NIF_TERM taos_fetch_row_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
   if (argc != 1) {
     return enif_make_badarg(env);
@@ -325,7 +339,6 @@ static ERL_NIF_TERM taos_errno_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
   if(err_no == 0) return enif_make_tuple2(env, atom_ok, enif_make_int(env, err_no));
   return enif_make_tuple2(env, atom_error, enif_make_int(env, err_no));
 }
-// extern void query_callback(void *param, TAOS_RES *res, int code);
 
 /* Asynchronous APIs */
 
@@ -394,6 +407,7 @@ static ErlNifFunc nif_funcs[] = {
   {"taos_select_db", 2, taos_select_db_nif},
   {"taos_query", 2, taos_query_nif},
   {"taos_affected_rows", 1, taos_affected_rows_nif},
+  {"taos_result_precision", 1, taos_result_precision_nif},
   {"taos_free_result", 1, taos_free_result_nif},
   {"taos_fetch_fields", 1, taos_fetch_fields_nif},
   {"taos_field_count", 1, taos_field_count_nif},

@@ -1,12 +1,12 @@
 defmodule Tdex.WS.Rows do
   alias Tdex.{WS.Connection, Binary}
 
-  def read_row(pid, dataQuery, timeout, data \\ []) do
+  def read_row(pid, dataQuery, timeout, precision, data \\ []) do
     with {:ok, %{"completed" => false}} <- Connection.fetch(pid, dataQuery["id"], timeout),
          {:ok, dataBlock} <- Connection.fetch_block(pid, dataQuery["id"], timeout)
     do
-      result = Binary.parse_block(dataBlock, dataQuery["fields_names"], data)
-      read_row(pid, dataQuery, timeout, result)
+      result = Binary.parse_block(dataBlock, dataQuery["fields_names"], precision, data)
+      read_row(pid, dataQuery, timeout, precision, result)
     else
       {:ok, _} ->
         Connection.free_result(pid, dataQuery["id"])

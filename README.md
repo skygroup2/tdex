@@ -7,9 +7,20 @@ Documentation:
 ## Note (when use native connection)
 - [Install Client Driver](https://docs.tdengine.com/reference/connector/#Install-Client-Driver)
 
-## Config
-Where the configuration for the Repo must be in your application environment, usually defined in your config/config.exs
+## Examples
 
+### 1. Connect Tdengine
+#### 1.1. Use params
+```iex
+iex> {:ok, pid} = Tdex.start_link(protocol: "native", hostname: "localhost", port: 6030, username: "root", password: "taosdata", database: "test", pool_size: 1)
+
+OR
+
+iex> {:ok, pid} = Tdex.start_link(protocol: "ws", hostname: "localhost", port: 6041, username: "root", password: "taosdata", database: "test", pool_size: 1, timeout: 120_000)
+```
+
+#### 1.2. Use file config
+Where the configuration for the Repo must be in your application environment, usually defined in your config/config.exs
 ```elixir
 # native connect
 config :tdex, Tdex.Repo,
@@ -25,21 +36,17 @@ config :tdex, Tdex.Repo,
 config :tdex, Tdex.Repo,
   protocol: "ws",
   username: "root",
-  database: "test",
+  database: "cfd80",
   hostname: "127.0.0.1",
   password: "taosdata",
   port: 6041,
   timeout: 1000,
   pool_size: 16
 ```
-## Examples
 
-### 1. Connect Tdengine
+After configuration is complete, run the command:
+
 ```iex
-iex> {:ok, pid} = Tdex.start_link(protocol: "native", hostname: "localhost", port: 6030, username: "root", password: "taosdata", database: "test", pool_size: 1)
-
-OR
-
 iex> {:ok, pid} = Tdex.start_link()
 ```
 

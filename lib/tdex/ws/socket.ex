@@ -50,7 +50,7 @@ defmodule Tdex.WS.Socket do
   end
 
   defp handle_query({:ok, dataQuery}, state) do
-    case Rows.read_row(state.pidWS, dataQuery, state.timeout) do
+    case Rows.read_row(state.pidWS, dataQuery, state.timeout, dataQuery["precision"]) do
       {:ok, rows} ->
         result = %Tdex.Result{code: dataQuery["code"], req_id: dataQuery["req_id"], rows: rows, affected_rows: dataQuery["affected_rows"], message: dataQuery["message"]}
         {:reply, {:ok, result}, state, :hibernate}

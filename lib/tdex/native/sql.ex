@@ -13,10 +13,11 @@ defmodule Tdex.Native do
   def query(conn, statement) do
     {:ok, res} = Wrapper.taos_query(conn, ~c(#{statement}))
     with {:ok, _} <- Wrapper.taos_errno(res),
-         {:ok, fields} <- Wrapper.taos_fetch_fields(res)
+         {:ok, fields} <- Wrapper.taos_fetch_fields(res),
+         {:ok, precision} <- Wrapper.taos_result_precision(res)
     do
       fieldNames = Binary.parse_field(fields, [])
-      Rows.read_row(res, fieldNames, [])
+      Rows.read_row(res, fieldNames, precision, [])
     else
       {:error, _} ->
         Wrapper.taos_free_result(res)
