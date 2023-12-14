@@ -34,6 +34,7 @@ defmodule QueryTest do
     t1 = ~TS[2024-01-01 10:44:51.907976277Z]
     assert t1 == Timestamp.add(a, 20, :day)
     assert Timestamp.to_string(t1) == "2024-01-01 10:44:51.907976277Z"
+    assert (~TS[2023-12-14 03:05:16.000001Z] |> Timestamp.to_unix()) == 1702523116000001000
   end
 
   test "decode basic types", context do

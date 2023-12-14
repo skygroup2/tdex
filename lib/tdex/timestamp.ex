@@ -85,8 +85,12 @@ defmodule Timestamp do
 		DateTime.diff(to_datetime_base_second(ts1), to_datetime_base_second(ts2), unit)
 	end
 
+	defp format_nano_str(ns) do
+		<<b::binary-size(3), bin::binary>> = Integer.to_string(ns) |> String.pad_leading(9, "0")
+		b <> String.trim_trailing(bin, "0")
+	end
 	def to_string(%{year: year, month: mon, day: day, hour: h, minute: min, second: s, nanosecond: ns}) do
-		:io_lib.format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B.#{Integer.to_string(ns) |> String.pad_leading(3, "0")}Z", [year, mon, day, h, min, s]) |> :erlang.list_to_binary
+		:io_lib.format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B.#{format_nano_str(ns)}Z", [year, mon, day, h, min, s]) |> :erlang.list_to_binary
 	end
 
 	def sigil_TS(ts, []) do
@@ -111,10 +115,14 @@ defmodule Timestamp do
   end
 
 	defimpl Inspect do
-		def inspect(%{year: y, month: mon, day: day, hour: h, minute: min, second: s, nanosecond: ns}, _opts) do
-			dtFormat = :io_lib.format("~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B", [y, mon, day, h, min, s]) |> :erlang.list_to_binary()
-			nanoFormat = Integer.to_string(ns) |> String.pad_leading(3, "0")
-			Inspect.Algebra.concat(["~TS[", dtFormat, ".", nanoFormat, "Z]"])
+		def inspect(ts, _opts) do
+			Inspect.Algebra.concat(["~TS[", Timestamp.to_string(ts), "]"])
+		end
+	end
+
+	defimpl String.Chars do
+		def to_string(ts) do
+			Timestamp.to_string(ts)
 		end
 	end
 end
