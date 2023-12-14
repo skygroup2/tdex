@@ -16,7 +16,7 @@ defmodule Tdex.Binary do
     bitMapSize = Bitwise.bsr(rows + 7, 3)
     {^rows, ret} =
       Enum.reverse(headers)
-      |> parse_entry(rows, bitMapSize, data, [])
+      |> parse_entry(rows, bitMapSize, precision, data, [])
       |> Enum.zip_reduce({0, result}, fn rows, {cnt, acc} ->
         {cnt + 1, [Enum.zip(fieldNames, rows) |> Map.new()|acc]}
       end)
