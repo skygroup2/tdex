@@ -36,5 +36,6 @@ defmodule Tdex.Common do
   defp parse_type(val) when is_binary(val), do: {:ok, "'#{val}'"}
   defp parse_type(val) when is_struct(val, DateTime), do: {:ok, "'#{DateTime.to_string(val)}'"}
   defp parse_type(val) when is_struct(val, Date), do: {:ok, "'#{Date.to_string(val)}'"}
+  defp parse_type(val) when is_struct(val, Timestamp), do: {:ok, "'#{Timestamp.to_string(val)}'"}
   defp parse_type(_), do: {:error, :type_not_support}
 end

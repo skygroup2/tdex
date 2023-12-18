@@ -4,11 +4,13 @@ defmodule QueryTest do
   alias Tdex, as: T
   use Timestamp
 
-  setup context do
+  setup _context do
     opts = [
       database: "tdex_test",
       backoff_type: :stop,
-      max_restarts: 0
+      max_restarts: 0,
+      protocol: :native,
+      pool_size: 1
     ]
 
     {:ok, pid} = T.start_link(opts)
@@ -97,8 +99,8 @@ defmodule QueryTest do
   end
 
   test "result struct", context do
-    assert {:ok, _, res} = T.query(context[:pid], "SELECT 123 AS a, 456 AS b", [])
-    assert %T.Result{} = res
+    {:ok, _, res} = T.query(context[:pid], "SELECT 123 AS a, 456 AS b", [])
+    assert match? %T.Result{}, res
     assert res.code == 0
     assert res.rows == [%{"a" => 123, "b" => 456}]
   end
@@ -108,26 +110,26 @@ defmodule QueryTest do
   end
 
   test "insert", context do
-    assert :ok = query("DROP TABLE IF EXISTS test", [])
-    assert :ok = query("CREATE TABLE IF NOT EXISTS test (ts TIMESTAMP, text VARCHAR(255))", [])
-    assert :ok = query("SELECT * FROM test", [])
-    assert :ok = query("INSERT INTO test VALUES (?, ?)", [~U[2018-11-15 10:00:00Z], "hoang"], [])
-    assert [%{"text" => "hoang", "ts" => ~U[2018-11-15 10:00:00.000Z]}] = query("SELECT * FROM test LIMIT 1", [])
+    assert :ok == query("DROP TABLE IF EXISTS test", [])
+    assert :ok == query("CREATE TABLE IF NOT EXISTS test (ts TIMESTAMP, text VARCHAR(255))", [])
+    assert :ok == query("SELECT * FROM test", [])
+    assert :ok == query("INSERT INTO test VALUES (?, ?)", [~TS[2018-11-15 10:00:00.000Z], "hoang"], [])
+    assert [%{"text" => "hoang", "ts" => ~TS[2018-11-15 10:00:00.000Z]}] == query("SELECT * FROM test LIMIT 1", [])
   end
 
   test "update", context do
-    assert :ok = query("CREATE TABLE IF NOT EXISTS test (ts TIMESTAMP, text VARCHAR(255))", [])
-    assert :ok = query("INSERT INTO test VALUES (?, ?)", [~U[2018-11-15 10:00:00Z], "hoang1"], [])
-    assert [%{"text" => "hoang1", "ts" => ~U[2018-11-15 10:00:00.000Z]}] = query("SELECT * FROM test LIMIT 1", [])
+    assert :ok == query("CREATE TABLE IF NOT EXISTS test (ts TIMESTAMP, text VARCHAR(255))", [])
+    assert :ok == query("INSERT INTO test VALUES (?, ?)", [~TS[2018-11-15 10:00:00.000Z], "hoang1"], [])
+    assert [%{"text" => "hoang1", "ts" => ~TS[2018-11-15 10:00:00.000Z]}] == query("SELECT * FROM test LIMIT 1", [])
   end
 
   test "multi row result struct", context do
-    assert :ok = query("CREATE TABLE IF NOT EXISTS test1 (ts TIMESTAMP, text VARCHAR(255))", [])
-    assert :ok = query("INSERT INTO test1 VALUES (?, ?)", [~U[2018-11-15 10:00:00Z], "hoang1"], [])
-    assert :ok = query("INSERT INTO test1 VALUES (?, ?)", [~U[2018-11-16 10:00:00Z], "hoang2"], [])
+    assert :ok == query("CREATE TABLE IF NOT EXISTS test1 (ts TIMESTAMP, text VARCHAR(255))", [])
+    assert :ok == query("INSERT INTO test1 VALUES (?, ?)", [~TS[2018-11-15 10:00:00.000Z], "hoang1"], [])
+    assert :ok == query("INSERT INTO test1 VALUES (?, ?)", [~TS[2018-11-16 10:00:00.000Z], "hoang2"], [])
     assert [
-      %{"text" => "hoang1", "ts" => ~U[2018-11-15 10:00:00.000Z]},
-      %{"text" => "hoang2", "ts" => ~U[2018-11-16 10:00:00.000Z]}
-    ] = query("SELECT * FROM test1", [])
+      %{"text" => "hoang1", "ts" => ~TS[2018-11-15 10:00:00.000Z]},
+      %{"text" => "hoang2", "ts" => ~TS[2018-11-16 10:00:00.000Z]}
+    ] == query("SELECT * FROM test1", [])
   end
 end

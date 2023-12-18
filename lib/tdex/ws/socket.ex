@@ -1,4 +1,6 @@
 defmodule Tdex.WS.Socket do
+  require Logger
+  require Skn.Log
   use GenServer
   alias Tdex.{WS.Connection, WS.Rows}
 
@@ -63,7 +65,7 @@ defmodule Tdex.WS.Socket do
   end
 
   def terminate(_reason, state) do
-    IO.puts("shutdown pid #{inspect(state.pidWS)}")
+    Skn.Log.debug("shutdown pid #{inspect(state.pidWS)}")
     :gun.shutdown(state.pidWS)
   end
 end

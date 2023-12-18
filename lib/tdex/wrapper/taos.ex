@@ -70,4 +70,41 @@ defmodule Tdex.Wrapper do
   def taos_close(_connect) do
     raise "taos_close not implemented"
   end
+
+  def taos_stmt_init(_taos, _param_cnt) do
+    raise "nif load fail"
+  end
+  def taos_stmt_close(_stmt) do
+    raise "nif load fail"
+  end
+  def taos_stmt_bind_param_batch(_stmt) do
+    raise "nif load fail"
+  end
+  def taos_stmt_execute(_stmt) do
+    raise "nif load fail"
+  end
+  def taos_multi_bind_set_timestamp(_stmt, _index, _ts) do
+    raise "nif load fail"
+  end
+  def taos_multi_bind_set_int(_stmt, _index, _value) do
+    raise "nif load fail"
+  end
+  def taos_multi_bind_set_long(_stmt, _index, _value) do
+    raise "nif load fail"
+  end
+  def taos_multi_bind_set_short(_stmt, _index, _value) do
+    raise "nif load fail"
+  end
+  def taos_multi_bind_set_bool(_stmt, _index, _value) do
+    raise "nif load fail"
+  end
+  def taos_multi_bind_set_float(_stmt, _index, _value) do
+    raise "nif load fail"
+  end
+  def taos_multi_bind_set_double(_stmt, _index, _value) do
+    raise "nif load fail"
+  end
+  def taos_multi_bind_set_varbinary(_stmt, _index, _value) do
+    raise "nif load fail"
+  end
 end

@@ -8,11 +8,21 @@ static ErlNifResourceType* TAOS_TYPE;
 static ErlNifResourceType* TAOS_RES_TYPE;
 static ErlNifResourceType* TAOS_ROW_TYPE;
 static ErlNifResourceType* TAOS_FIELD_TYPE;
+static ErlNifResourceType* TAOS_STMT_TYPE;
 
 static ERL_NIF_TERM atom_ok;
 static ERL_NIF_TERM atom_error_connect;
 static ERL_NIF_TERM atom_error;
 static ERL_NIF_TERM atom_invalid_resource;
+static ERL_NIF_TERM atom_excute_statement_fail;
+static ERL_NIF_TERM atom_less_memory;
+
+static int32_t boolLen;
+static int32_t sintLen;
+static int32_t intLen;
+static int32_t bintLen;
+static int32_t floatLen;
+static int32_t doubleLen;
 
 typedef struct {
   TAOS* taos;
@@ -30,6 +40,366 @@ typedef struct {
   TAOS_FIELD* taos_field;
 } taos_field_t;
 
+typedef struct {
+  TAOS_STMT* stmt;
+  TAOS_MULTI_BIND* params;
+  int param_count;
+} taos_stmt_t;
+
+static void free_parm(TAOS_MULTI_BIND* params, int count);
+static ERL_NIF_TERM make_string(ErlNifEnv* env, char* str);
+static ERL_NIF_TERM make_string(ErlNifEnv* env, char* str) {
+  int str_len = strlen(str);
+  ErlNifBinary bin;
+  enif_alloc_binary(str_len, &bin);
+  memcpy(bin.data, str, str_len);
+  ERL_NIF_TERM term = enif_make_binary(env, &bin);
+  enif_release_binary(&bin);
+  return term;
+}
+
+static ERL_NIF_TERM taos_stmt_init_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 2) {
+    return enif_make_badarg(env);
+  }
+
+  taos_t* taos_ptr = NULL;
+  if(!enif_get_resource(env, argv[0], TAOS_TYPE, (void**) &taos_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+
+  unsigned sql_length;
+  enif_get_list_length(env, argv[1], &sql_length);
+  char sql[sql_length+1];
+  if(!enif_get_string(env, argv[1], sql, sizeof(sql), ERL_NIF_LATIN1)){
+    return enif_make_badarg(env);
+  };
+  uint param_count = 0;
+  for(int i = 0; i < sql_length; i++){
+    if(sql[i] == '?') param_count++;
+  }
+  
+  TAOS_STMT *stmt = taos_stmt_init(taos_ptr->taos);
+  int code = taos_stmt_prepare(stmt, sql, 0);
+  if(code){
+    taos_stmt_close(stmt);
+    return enif_make_tuple2(env, atom_error, enif_make_int(env, code));
+  }
+  TAOS_MULTI_BIND* params = (TAOS_MULTI_BIND*)malloc(sizeof(TAOS_MULTI_BIND) * param_count);
+  if(params == NULL && param_count > 0){
+    taos_stmt_close(stmt);
+    return enif_make_tuple2(env, atom_error, atom_less_memory);
+  }
+  taos_stmt_t* stmt_ptr = (taos_stmt_t*)enif_alloc_resource(TAOS_STMT_TYPE, sizeof(taos_stmt_t));
+  stmt_ptr->stmt = stmt;
+  stmt_ptr->params = params;
+  stmt_ptr->param_count = param_count;
+  ERL_NIF_TERM result = enif_make_resource(env, stmt_ptr);
+  enif_release_resource(stmt_ptr);
+  return enif_make_tuple2(env, atom_ok, result);
+}
+
+static ERL_NIF_TERM taos_stmt_bind_param_batch_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 1) {
+    return enif_make_badarg(env);
+  }
+  taos_stmt_t* stmt_ptr = NULL;
+  if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+
+  taos_stmt_bind_param(stmt_ptr->stmt, stmt_ptr->params);
+  taos_stmt_add_batch(stmt_ptr->stmt);
+  free_parm(stmt_ptr->params, stmt_ptr->param_count);
+  return atom_ok;
+}
+
+static void free_parm(TAOS_MULTI_BIND* params, int count){
+  for(int i = 0; i < count; i++){
+    TAOS_MULTI_BIND* prm = params + i;
+    if(prm->buffer){
+      free(prm->buffer);
+      free(prm->length);
+      prm->buffer = NULL;
+      prm->length = NULL;
+    }
+  }
+}
+
+static ERL_NIF_TERM taos_stmt_execute_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 1) {
+    return enif_make_badarg(env);
+  }
+  taos_stmt_t* stmt_ptr = NULL;
+  if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+  int exc_res = taos_stmt_execute(stmt_ptr->stmt);
+  if (exc_res != 0) {
+    char* err = taos_stmt_errstr(stmt_ptr->stmt);
+    ERL_NIF_TERM err_msg = make_string(env, err);
+    return enif_make_tuple3(env, atom_excute_statement_fail, enif_make_int(env, exc_res), err_msg);
+  }
+  int affected_rows = taos_stmt_affected_rows(stmt_ptr->stmt);
+  return enif_make_tuple2(env, atom_ok, enif_make_int(env, affected_rows));
+}
+
+static ERL_NIF_TERM taos_stmt_close_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 1) {
+    return enif_make_badarg(env);
+  }
+  taos_stmt_t* stmt_ptr = NULL;
+  if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+  taos_stmt_close(stmt_ptr->stmt);
+  if(stmt_ptr->params){
+    free_parm(stmt_ptr->params, stmt_ptr->param_count);
+    free(stmt_ptr->params);
+    stmt_ptr->params = NULL;
+  }
+  return atom_ok;
+}
+
+static ERL_NIF_TERM taos_multi_bind_set_timestamp_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 3) {
+    return enif_make_badarg(env);
+  }
+  taos_stmt_t* stmt_ptr = NULL;
+  uint index;
+  if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+  if(!enif_get_uint(env, argv[1], &index)){
+    return enif_make_badarg(env);
+  };
+  ulong *buffer = (ulong*)malloc(bintLen);
+  if(!enif_get_ulong(env, argv[2], buffer)){
+    free(buffer);
+    return enif_make_badarg(env);
+  };
+  
+  TAOS_MULTI_BIND* params = stmt_ptr->params;
+  if(params == NULL){
+    return enif_make_tuple2(env, atom_error, atom_error);
+  }
+  int32_t* len_ptr =(int32_t*)malloc(sizeof(int32_t));
+  *len_ptr = bintLen;
+  params[index].buffer_type = TSDB_DATA_TYPE_TIMESTAMP;
+  params[index].buffer_length = bintLen;
+  params[index].buffer = buffer;
+  params[index].length = len_ptr;
+  params[index].is_null = 0;
+  params[index].num = 1;
+  return atom_ok;
+}
+
+static ERL_NIF_TERM taos_multi_bind_set_int_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 3) {
+    return enif_make_badarg(env);
+  }
+  taos_stmt_t* stmt_ptr = NULL;
+  uint index;
+  if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+  TAOS_MULTI_BIND* params = stmt_ptr->params;
+  if(!enif_get_uint(env, argv[1], &index)){
+    return enif_make_badarg(env);
+  };
+  int32_t* buffer = (int32_t*)malloc(intLen);
+  if(!enif_get_int(env, argv[2], buffer)){
+    free(buffer);
+    return enif_make_badarg(env);
+  };
+  int32_t* len_ptr =(int32_t*)malloc(sizeof(int32_t));
+  *len_ptr = intLen;
+  params[index].buffer_type = TSDB_DATA_TYPE_INT;
+  params[index].buffer_length = intLen;
+  params[index].buffer = buffer;
+  params[index].length = len_ptr;
+  params[index].is_null = 0;
+  params[index].num = 1;
+  return atom_ok;
+}
+
+static ERL_NIF_TERM taos_multi_bind_set_long_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 3) {
+    return enif_make_badarg(env);
+  }
+  taos_stmt_t* stmt_ptr = NULL;
+  uint index;
+  if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+  TAOS_MULTI_BIND* params = stmt_ptr->params;
+  if(!enif_get_uint(env, argv[1], &index)){
+    return enif_make_badarg(env);
+  };
+  int64_t* buffer = (int64_t*)malloc(intLen);
+  if(!enif_get_long(env, argv[2], buffer)){
+    free(buffer);
+    return enif_make_badarg(env);
+  };
+  int32_t* len_ptr =(int32_t*)malloc(sizeof(int32_t));
+  *len_ptr = bintLen;
+  params[index].buffer_type = TSDB_DATA_TYPE_BIGINT;
+  params[index].buffer_length = bintLen;
+  params[index].buffer = buffer;
+  params[index].length = len_ptr;
+  params[index].is_null = 0;
+  params[index].num = 1;
+  return atom_ok;
+}
+
+static ERL_NIF_TERM taos_multi_bind_set_short_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 3) {
+    return enif_make_badarg(env);
+  }
+  taos_stmt_t* stmt_ptr = NULL;
+  uint index;
+  if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+  TAOS_MULTI_BIND* params = stmt_ptr->params;
+  if(!enif_get_uint(env, argv[1], &index)){
+    return enif_make_badarg(env);
+  };
+  int value;
+  if(!enif_get_int(env, argv[2], &value)){
+    return enif_make_badarg(env);
+  };
+  int16_t* buffer = (int16_t*)malloc(sintLen);
+  *buffer = (int16_t)value;
+  int32_t* len_ptr =(int32_t*)malloc(sizeof(int32_t));
+  *len_ptr = sintLen;
+  params[index].buffer_type = TSDB_DATA_TYPE_SMALLINT;
+  params[index].buffer_length = sintLen;
+  params[index].buffer = buffer;
+  params[index].length = len_ptr;
+  params[index].is_null = 0;
+  params[index].num = 1;
+  return atom_ok;
+}
+
+static ERL_NIF_TERM taos_multi_bind_set_bool_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 3) {
+    return enif_make_badarg(env);
+  }
+  taos_stmt_t* stmt_ptr = NULL;
+  uint index;
+  if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+  TAOS_MULTI_BIND* params = stmt_ptr->params;
+  if(!enif_get_uint(env, argv[1], &index)){
+    return enif_make_badarg(env);
+  };
+  uint value;
+  if(!enif_get_uint(env, argv[2], &value)){
+    return enif_make_badarg(env);
+  };
+  int8_t* buffer = (int8_t*)malloc(boolLen);
+  *buffer = (int8_t)value;
+  int32_t* len_ptr =(int32_t*)malloc(sizeof(int32_t));
+  *len_ptr = boolLen;
+  params[index].buffer_type = TSDB_DATA_TYPE_TINYINT;
+  params[index].buffer_length = boolLen;
+  params[index].buffer = buffer;
+  params[index].length = len_ptr;
+  params[index].is_null = 0;
+  params[index].num = 1;
+  return atom_ok;
+}
+
+static ERL_NIF_TERM taos_multi_bind_set_float_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 3) {
+    return enif_make_badarg(env);
+  }
+  taos_stmt_t* stmt_ptr = NULL;
+  uint index;
+  if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+  TAOS_MULTI_BIND* params = stmt_ptr->params;
+  if(!enif_get_uint(env, argv[1], &index)){
+    return enif_make_badarg(env);
+  };
+  double value;
+  if(!enif_get_double(env, argv[2], &value)){
+    return enif_make_badarg(env);
+  };
+  float* buffer = (float*)malloc(floatLen);
+  *buffer = (float)value;
+  int32_t* len_ptr =(int32_t*)malloc(sizeof(int32_t));
+  *len_ptr = floatLen;
+  params[index].buffer_type = TSDB_DATA_TYPE_FLOAT;
+  params[index].buffer_length = floatLen;
+  params[index].buffer = buffer;
+  params[index].length = len_ptr;
+  params[index].is_null = 0;
+  params[index].num = 1;
+  return atom_ok;
+}
+
+static ERL_NIF_TERM taos_multi_bind_set_double_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 3) {
+    return enif_make_badarg(env);
+  }
+  taos_stmt_t* stmt_ptr = NULL;
+  uint index;
+  if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+  TAOS_MULTI_BIND* params = stmt_ptr->params;
+  if(!enif_get_uint(env, argv[1], &index)){
+    return enif_make_badarg(env);
+  };
+  double* buffer = (double*)malloc(doubleLen);
+  if(!enif_get_double(env, argv[2], buffer)){
+    free(buffer);
+    return enif_make_badarg(env);
+  };
+  int32_t* len_ptr =(int32_t*)malloc(sizeof(int32_t));
+  *len_ptr = doubleLen;
+  params[index].buffer_type = TSDB_DATA_TYPE_DOUBLE;
+  params[index].buffer_length = doubleLen;
+  params[index].buffer = buffer;
+  params[index].length = len_ptr;
+  params[index].is_null = 0;
+  params[index].num = 1;
+  return atom_ok;
+}
+
+static ERL_NIF_TERM taos_multi_bind_set_varbinary_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 3) {
+    return enif_make_badarg(env);
+  }
+  taos_stmt_t* stmt_ptr = NULL;
+  uint index;
+  if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+  TAOS_MULTI_BIND* params = stmt_ptr->params;
+  if(!enif_get_uint(env, argv[1], &index)){
+    return enif_make_badarg(env);
+  };
+  ErlNifBinary bin;
+  if(!enif_inspect_binary(env, argv[2], &bin)){
+    return enif_make_badarg(env);
+  };
+  char* buffer = (char*)malloc(bin.size);
+  int32_t* len_ptr =(int32_t*)malloc(sizeof(int32_t));
+  *len_ptr = bin.size;
+  memcpy(buffer, bin.data, *len_ptr);
+  params[index].buffer_type = TSDB_DATA_TYPE_VARBINARY;
+  params[index].buffer_length = bin.size;
+  params[index].buffer = buffer;
+  params[index].length = len_ptr;
+  params[index].is_null = 0;
+  params[index].num = 1;
+  return atom_ok;
+}
 /* BASIC API TAOS */
 static ERL_NIF_TERM taos_connect_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
   if (argc != 5) {
@@ -84,7 +454,7 @@ static ERL_NIF_TERM taos_close_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
   };
 
   taos_close(taos_ptr->taos);
-  return enif_make_tuple1(env, atom_ok);
+  return atom_ok;
 }
 
 static ERL_NIF_TERM taos_select_db_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
@@ -284,7 +654,7 @@ static ERL_NIF_TERM taos_cleanup_nif(ErlNifEnv* env, int argc, const ERL_NIF_TER
   }
 
   taos_cleanup();
-  return enif_make_tuple1(env, atom_ok);
+  return atom_ok;
 }
 
 
@@ -358,7 +728,7 @@ static ERL_NIF_TERM taos_query_a_nif(ErlNifEnv* env, int argc, const ERL_NIF_TER
   };
 
   taos_query_a(taos_ptr->taos, sql, NULL, NULL);
-  return enif_make_tuple1(env, atom_ok);
+  return atom_ok;
 }
 
 
@@ -373,6 +743,7 @@ static inline int init_taos_resource(ErlNifEnv* env) {
   const char* name_res_taos = "TAOS_RES_TYPE";
   const char* name_row_taos = "TAOS_ROW_TYPE";
   const char* name_field_taos = "TAOS_FIELD_TYPE";
+  const char* name_stmt_type = "TAOS_STMT_TYPE";
   int flags = ERL_NIF_RT_CREATE | ERL_NIF_RT_TAKEOVER;
 
   TAOS_TYPE = enif_open_resource_type(env, mod_taos, name_taos, free_taos_resource, (ErlNifResourceFlags)flags, NULL);
@@ -387,6 +758,9 @@ static inline int init_taos_resource(ErlNifEnv* env) {
   TAOS_FIELD_TYPE = enif_open_resource_type(env, mod_taos, name_field_taos, free_taos_resource, (ErlNifResourceFlags)flags, NULL);
   if(TAOS_FIELD_TYPE == NULL) return -1;
 
+  TAOS_STMT_TYPE = enif_open_resource_type(env, mod_taos, name_stmt_type, free_taos_resource, (ErlNifResourceFlags)flags, NULL);
+  if(TAOS_STMT_TYPE == NULL) return -1;
+
   return 0;
 }
 
@@ -398,6 +772,15 @@ static int init_nif(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info) {
   atom_error = enif_make_atom(env, "error");  
   atom_error_connect = enif_make_atom(env, "error_connect");  
   atom_invalid_resource = enif_make_atom(env, "invalid_resource");
+  atom_excute_statement_fail = enif_make_atom(env, "exc_fail");
+  atom_less_memory = enif_make_atom(env, "less_memory");
+
+  boolLen = sizeof(int8_t);
+  sintLen = sizeof(int16_t);
+  intLen = sizeof(int32_t);
+  bintLen = sizeof(int64_t);
+  floatLen = sizeof(float);
+  doubleLen = sizeof(double);
   return 0;
 }
 
@@ -418,6 +801,24 @@ static ErlNifFunc nif_funcs[] = {
   {"taos_errno", 1, taos_errno_nif},
   {"taos_fetch_row", 1, taos_fetch_row_nif},
   {"taos_query_a", 4, taos_query_a_nif},
+  {"taos_stmt_init", 2, taos_stmt_init_nif},
+  {"taos_stmt_bind_param_batch", 1, taos_stmt_bind_param_batch_nif},
+  {"taos_stmt_execute", 1, taos_stmt_execute_nif},
+  {"taos_stmt_close", 1, taos_stmt_close_nif},
+  {"taos_multi_bind_set_timestamp", 3, taos_multi_bind_set_timestamp_nif},
+  {"taos_multi_bind_set_int", 3, taos_multi_bind_set_int_nif},
+  {"taos_multi_bind_set_long", 3, taos_multi_bind_set_long_nif},
+  {"taos_multi_bind_set_short", 3, taos_multi_bind_set_short_nif},
+  {"taos_multi_bind_set_bool", 3, taos_multi_bind_set_bool_nif},
+  {"taos_multi_bind_set_float", 3, taos_multi_bind_set_float_nif},
+  {"taos_multi_bind_set_double", 3, taos_multi_bind_set_double_nif},
+  {"taos_multi_bind_set_varbinary", 3, taos_multi_bind_set_varbinary_nif}
 };
 
+// static void log(format, ){
+//   FILE * pFile;
+//   pFile = fopen ("enif.log","wa");
+//   enif_fprintf(pFile, format);
+//   fclose(pFile);
+// }
 ERL_NIF_INIT(Elixir.Tdex.Wrapper, nif_funcs, init_nif, NULL, NULL, NULL)

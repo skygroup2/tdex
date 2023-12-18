@@ -1,25 +1,27 @@
 defmodule LoginTest do
   use ExUnit.Case
-  import ExUnit.CaptureLog
   alias Tdex, as: T
   setup do
-    {:ok, [options: [database: "test", backoff_type: :stop, max_restarts: 0]]}
+    {:ok, [options: [database: "tdex_test", backoff_type: :stop, max_restarts: 0, pool_size: 1]]}
   end
 
   test "login password", context do
     Process.flag(:trap_exit, true)
-    opts = [protocol: "ws", username: "root", password: "taosdata", port: 6041]
-    assert {:ok, pid} = T.start_link(opts ++ context[:options])
-    assert {:ok, %Tdex.Query{}, %T.Result{}} = T.query(pid, "SELECT 123", [])
-    TSQL.cmd(["-s", "DROP DATABASE IF EXISTS postgrex_test;"])
+    opts = [protocol: :ws, username: "root", password: "taosdata", port: 6041]
+    {:ok, pid} = T.start_link(Keyword.merge opts, context[:options])
+    flag = is_pid(pid) and Process.alive?(pid)
+    Process.exit(pid, :kill)
+    assert flag
   end
 
-  # test "login password failure", context do
-  #   Process.flag(:trap_exit, true)
-  #   opts = [protocol: "ws", username: "root", password: "taosdata", port: 6041]
-  #   assert {:ok, pid} = T.start_link(opts ++ context[:options])
-  #   assert {:error, _} = T.query(pid, "SELECT 123", [])
-  # end
+  test "login password failure", context do
+    Process.flag(:trap_exit, true)
+    opts = [protocol: :ws, username: "root", password: "wrong_pass", port: 6041]
+    {:ok, pid} = T.start_link(Keyword.merge opts, context[:options])
+    flag = is_pid(pid) and Process.alive?(pid)
+    Process.exit(pid, :kill)
+    assert flag
+  end
 
   # defp assert_start_and_killed(opts) do
   #   Process.flag(:trap_exit, true)

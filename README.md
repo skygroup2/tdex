@@ -12,11 +12,11 @@ Documentation:
 ### 1. Connect Tdengine
 #### 1.1. Use params
 ```iex
-iex> {:ok, pid} = Tdex.start_link(protocol: "native", hostname: "localhost", port: 6030, username: "root", password: "taosdata", database: "test", pool_size: 1)
+iex> {:ok, pid} = Tdex.start_link(protocol: :native, hostname: "localhost", port: 6030, username: "root", password: "taosdata", database: "test", pool_size: 1)
 
 OR
 
-iex> {:ok, pid} = Tdex.start_link(protocol: "ws", hostname: "localhost", port: 6041, username: "root", password: "taosdata", database: "test", pool_size: 1, timeout: 120_000)
+iex> {:ok, pid} = Tdex.start_link(protocol: :ws, hostname: "localhost", port: 6041, username: "root", password: "taosdata", database: "test", pool_size: 1, timeout: 120_000)
 ```
 
 #### 1.2. Use file config
@@ -24,7 +24,7 @@ Where the configuration for the Repo must be in your application environment, us
 ```elixir
 # native connect
 config :tdex, Tdex.Repo,
-  protocol: "native",
+  protocol: :native,
   username: "root",
   database: "test",
   hostname: "127.0.0.1",
@@ -34,7 +34,7 @@ config :tdex, Tdex.Repo,
 
 # ws connect
 config :tdex, Tdex.Repo,
-  protocol: "ws",
+  protocol: :ws,
   username: "root",
   database: "cfd80",
   hostname: "127.0.0.1",
@@ -65,6 +65,25 @@ iex> Tdex.query!(pid, "SELECT ts,bid FROM tick WHERE bid = ? AND ask = ? LIMIT 1
 %Tdex.Result{code: 0, req_id: 3, rows: [], affected_rows: 0, message: ""}
 ```
 
+# Parameter binding example
+CREATE TABLE table_varbinary (ts TIMESTAMP, val VARBINARY);
+```
+    tsNow = System.system_time(:nanosecond)
+    sql = 'insert into table_varbinary values(?, ?)'
+    {:ok, stmt} = Wrapper.taos_stmt_init(conn, sql)
+    try do
+      :ok = Wrapper.taos_multi_bind_set_timestamp(stmt, 0, tsNow)
+      :ok = Wrapper.taos_multi_bind_set_varbinary(stmt, 1, "Hello tdengine")
+      :ok = Wrapper.taos_stmt_bind_param_batch(stmt)
+      Wrapper.taos_stmt_execute(stmt)
+    catch _, ex ->
+      IO.inspect(ex);
+      IO.inspect(__STACKTRACE__)
+    after
+      IO.puts("close stmt")
+      Wrapper.taos_stmt_close(stmt)
+    end
+```
 ## Features
 
 ## JSON support
