@@ -432,6 +432,36 @@ static ERL_NIF_TERM taos_multi_bind_set_varbinary_nif(ErlNifEnv* env, int argc, 
   params->num = 1;
   return atom_ok;
 }
+
+static ERL_NIF_TERM taos_multi_bind_set_varchar_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 3) {
+    return enif_make_badarg(env);
+  }
+  taos_stmt_t* stmt_ptr = NULL;
+  uint index;
+  if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+  if(!enif_get_uint(env, argv[1], &index)){
+    return enif_make_badarg(env);
+  };
+  ErlNifBinary bin;
+  if(!enif_inspect_binary(env, argv[2], &bin)){
+    return enif_make_badarg(env);
+  };
+  char* buffer = (char*)malloc(bin.size);
+  int32_t* len_ptr = (int32_t*)malloc(sizeof(int32_t));
+  *len_ptr = bin.size;
+  memcpy(buffer, bin.data, *len_ptr);
+  TAOS_MULTI_BIND* params = stmt_ptr->params + index;
+  params->buffer_type = TSDB_DATA_TYPE_VARCHAR;
+  params->buffer_length = bin.size;
+  params->buffer = buffer;
+  params->length = len_ptr;
+  params->is_null = 0;
+  params->num = 1;
+  return atom_ok;
+}
 /* BASIC API TAOS */
 static ERL_NIF_TERM taos_connect_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
   if (argc != 5) {
@@ -846,7 +876,8 @@ static ErlNifFunc nif_funcs[] = {
   {"taos_multi_bind_set_bool", 3, taos_multi_bind_set_bool_nif},
   {"taos_multi_bind_set_float", 3, taos_multi_bind_set_float_nif},
   {"taos_multi_bind_set_double", 3, taos_multi_bind_set_double_nif},
-  {"taos_multi_bind_set_varbinary", 3, taos_multi_bind_set_varbinary_nif}
+  {"taos_multi_bind_set_varbinary", 3, taos_multi_bind_set_varbinary_nif},
+  {"taos_multi_bind_set_varchar", 3, taos_multi_bind_set_varchar_nif}
 };
 
 // static void log(format, ){

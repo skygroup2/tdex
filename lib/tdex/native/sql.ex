@@ -61,6 +61,9 @@ defmodule Tdex.Native do
   def bind_set_varbinary(stmt, index, v) do
     Wrapper.taos_multi_bind_set_varbinary(stmt, index, v)
   end
+  def bind_set_varchar(stmt, index, v) do
+    Wrapper.taos_multi_bind_set_varchar(stmt, index, v)
+  end
 
   def bind_param(stmt) do
     Wrapper.taos_stmt_bind_param_batch(stmt)
@@ -79,12 +82,12 @@ defmodule Tdex.Native do
     [{{Tdex.DBConnection, _, _}, p1, :worker, [DBConnection.Connection]}|_] = Supervisor.which_children(p)
     {:no_state, %{state: %{conn: conn}}} = :sys.get_state(p1)
     tsNow = System.system_time(:nanosecond)
-    sql = 'insert into table_bool values(?, ?)'
+    sql = 'insert into table_varchar values(?, ?)'
     # sql = 'select * from table_varbinary where ts < ?'
     {:ok, stmt} = Wrapper.taos_stmt_init(conn, sql)
     try do
       :ok = Wrapper.taos_multi_bind_set_timestamp(stmt, 0, tsNow)
-      :ok = Wrapper.taos_multi_bind_set_bool(stmt, 1, 1)
+      :ok = Wrapper.taos_multi_bind_set_varchar(stmt, 1, "AXUUSD")
       :ok = Wrapper.taos_stmt_bind_param_batch(stmt)
       Wrapper.taos_stmt_execute(stmt)
     catch _, ex ->

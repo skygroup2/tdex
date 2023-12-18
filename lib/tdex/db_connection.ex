@@ -90,6 +90,7 @@ defmodule Tdex.DBConnection do
                 {:float, idx} -> :ok = protocol.bind_set_float(stmt, idx, v)
                 {:double, idx} -> :ok = protocol.bind_set_double(stmt, idx, v)
                 {:varbinary, idx} -> :ok = protocol.bind_set_varbinary(stmt, idx, v)
+                {:varchar, idx} -> :ok = protocol.bind_set_varchar(stmt, idx, v)
               end
             end)
             :ok = protocol.bind_param(stmt)

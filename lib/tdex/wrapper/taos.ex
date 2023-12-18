@@ -110,4 +110,7 @@ defmodule Tdex.Wrapper do
   def taos_multi_bind_set_varbinary(_stmt, _index, _value) do
     raise "nif load fail"
   end
+  def taos_multi_bind_set_varchar(_stmt, _index, _value) do
+    raise "nif load fail"
+  end
 end
