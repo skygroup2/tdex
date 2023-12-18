@@ -65,13 +65,41 @@ defmodule Tdex.DBConnection do
   end
 
   @impl true
-  def handle_execute(query, params, _, state) do
-    with {:ok, query_params} <- Common.interpolate_params(query.statement, params),
-         {:ok, result} <- state.protocol.query(state.conn, query_params)
-    do
-      {:ok, %Tdex.Query{name: "", statement: query_params}, result, state}
-    else
-      {:error, error} -> {:error, error, state}
+  def handle_execute(query, params, _, %{conn: conn, protocol: protocol} = state) do
+    case query do
+      %{schema: nil, statement: sql} ->
+        with {:ok, query_params} <- Common.interpolate_params(sql, params),
+          {:ok, result} <- protocol.query(conn, query_params)
+        do
+          {:ok, %Tdex.Query{name: "", statement: query_params}, result, state}
+        else
+          {:error, error} -> {:error, error, state}
+        end
+      %{schema: sche, statement: sql} ->
+        {:ok, stmt} = protocol.statement_init(conn, sql)
+        try do
+          Enum.each(params, fn row ->
+            Enum.each(row, fn {k, v} ->
+              case sche[k] do
+                {:ts, idx} -> :ok = protocol.bind_set_timestamp(stmt, idx, v)
+                {:bool, idx} -> :ok = protocol.bind_set_bool(stmt, idx, v)
+                {:int32, idx} -> :ok = protocol.bind_set_int32(stmt, idx, v)
+                {:int16, idx} -> :ok = protocol.bind_set_int16(stmt, idx, v)
+                {:int64, idx} -> :ok = protocol.bind_set_int64(stmt, idx, v)
+                {:float, idx} -> :ok = protocol.bind_set_float(stmt, idx, v)
+                {:double, idx} -> :ok = protocol.bind_set_double(stmt, idx, v)
+                {:varbinary, idx} -> :ok = protocol.bind_set_varbinary(stmt, idx, v)
+              end
+            end)
+            :ok = protocol.bind_param(stmt)
+          end)
+          result = protocol.execute_statement(stmt)
+          {:ok, query, result, state}
+        catch _, ex ->
+          {:error, ex, state}
+        after
+          protocol.close_statement(stmt)
+        end
     end
   end
 

@@ -19,29 +19,33 @@ defmodule Tdex do
     DBConnection.start_link(Tdex.DBConnection, opts)
   end
 
-  def query(conn, statement, params, opts \\ []) do
-    query = %Query{name: "", statement: statement}
+  def query(conn, statement, params, opts \\ [])
+  def query(conn, statement, params, opts) when is_binary(statement) do
+    query(conn, %Query{name: "", statement: statement}, params, opts)
+  end
+  def query(conn, query, params, opts) do
     case DBConnection.prepare_execute(conn, query, params, opts) do
       {:ok, query, result} -> {:ok, query, result}
       {:error, _} = error -> error
     end
   end
 
-  def query!(conn, statement, params, opts \\ []) do
-    query = %Query{name: "", statement: statement}
+  def query!(conn, statement, params, opts \\ [])
+  def query!(conn, statement, params, opts) when is_binary(statement) do
+    query!(conn, %Query{name: "", statement: statement}, params, opts)
+  end
+  def query!(conn, query, params, opts) do
     case DBConnection.prepare_execute(conn, query, params, opts) do
       {:ok, _, result} -> result
       {:error, error} -> raise error
     end
   end
 
-  def execute(conn, statement, params, opts \\ []) do
-    query = %Query{name: "", statement: statement}
+  def execute(conn, query, params, opts \\ []) do
     DBConnection.execute(conn, query, params, opts)
   end
 
-  def execute!(conn, statement, params, opts \\ []) do
-    query = %Query{name: "", statement: statement}
+  def execute!(conn, query, params, opts \\ []) do
     DBConnection.execute!(conn, query, params, opts)
   end
 end

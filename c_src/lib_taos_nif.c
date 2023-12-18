@@ -23,6 +23,7 @@ static int32_t intLen;
 static int32_t bintLen;
 static int32_t floatLen;
 static int32_t doubleLen;
+static char is_null;
 
 typedef struct {
   TAOS* taos;
@@ -48,6 +49,20 @@ typedef struct {
 
 static void free_parm(TAOS_MULTI_BIND* params, int count);
 static ERL_NIF_TERM make_string(ErlNifEnv* env, char* str);
+
+static void free_parm(TAOS_MULTI_BIND* params, int count){
+  for(int i = 0; i < count; i++){
+    TAOS_MULTI_BIND* prm = params + i;
+    if(prm->buffer){
+      free(prm->buffer);
+      free(prm->length);
+      prm->buffer = NULL;
+      prm->length = NULL;
+      prm->is_null = &is_null;
+    }
+  }
+}
+
 static ERL_NIF_TERM make_string(ErlNifEnv* env, char* str) {
   int str_len = strlen(str);
   ErlNifBinary bin;
@@ -85,11 +100,14 @@ static ERL_NIF_TERM taos_stmt_init_nif(ErlNifEnv* env, int argc, const ERL_NIF_T
     taos_stmt_close(stmt);
     return enif_make_tuple2(env, atom_error, enif_make_int(env, code));
   }
-  TAOS_MULTI_BIND* params = (TAOS_MULTI_BIND*)malloc(sizeof(TAOS_MULTI_BIND) * param_count);
-  if(params == NULL && param_count > 0){
-    taos_stmt_close(stmt);
-    return enif_make_tuple2(env, atom_error, atom_less_memory);
-  }
+  TAOS_MULTI_BIND* params = NULL;
+  if(param_count > 0){
+    params = (TAOS_MULTI_BIND*)malloc(sizeof(TAOS_MULTI_BIND) * param_count);
+    if(params == NULL){
+      taos_stmt_close(stmt);
+      return enif_make_tuple2(env, atom_error, atom_less_memory);
+    }
+  } 
   taos_stmt_t* stmt_ptr = (taos_stmt_t*)enif_alloc_resource(TAOS_STMT_TYPE, sizeof(taos_stmt_t));
   stmt_ptr->stmt = stmt;
   stmt_ptr->params = params;
@@ -107,23 +125,10 @@ static ERL_NIF_TERM taos_stmt_bind_param_batch_nif(ErlNifEnv* env, int argc, con
   if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
     return enif_make_tuple2(env, atom_error, atom_invalid_resource);
   };
-
-  taos_stmt_bind_param(stmt_ptr->stmt, stmt_ptr->params);
-  taos_stmt_add_batch(stmt_ptr->stmt);
+  if(stmt_ptr->params) taos_stmt_bind_param(stmt_ptr->stmt, stmt_ptr->params);
   free_parm(stmt_ptr->params, stmt_ptr->param_count);
+  taos_stmt_add_batch(stmt_ptr->stmt);
   return atom_ok;
-}
-
-static void free_parm(TAOS_MULTI_BIND* params, int count){
-  for(int i = 0; i < count; i++){
-    TAOS_MULTI_BIND* prm = params + i;
-    if(prm->buffer){
-      free(prm->buffer);
-      free(prm->length);
-      prm->buffer = NULL;
-      prm->length = NULL;
-    }
-  }
 }
 
 static ERL_NIF_TERM taos_stmt_execute_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
@@ -179,18 +184,15 @@ static ERL_NIF_TERM taos_multi_bind_set_timestamp_nif(ErlNifEnv* env, int argc, 
     return enif_make_badarg(env);
   };
   
-  TAOS_MULTI_BIND* params = stmt_ptr->params;
-  if(params == NULL){
-    return enif_make_tuple2(env, atom_error, atom_error);
-  }
-  int32_t* len_ptr =(int32_t*)malloc(sizeof(int32_t));
+  int32_t* len_ptr = (int32_t*)malloc(sizeof(int32_t));
   *len_ptr = bintLen;
-  params[index].buffer_type = TSDB_DATA_TYPE_TIMESTAMP;
-  params[index].buffer_length = bintLen;
-  params[index].buffer = buffer;
-  params[index].length = len_ptr;
-  params[index].is_null = 0;
-  params[index].num = 1;
+  TAOS_MULTI_BIND* params = stmt_ptr->params + index;
+  params->buffer_type = TSDB_DATA_TYPE_TIMESTAMP;
+  params->buffer_length = bintLen;
+  params->buffer = buffer;
+  params->length = len_ptr;
+  params->is_null = 0;
+  params->num = 1;
   return atom_ok;
 }
 
@@ -203,7 +205,6 @@ static ERL_NIF_TERM taos_multi_bind_set_int_nif(ErlNifEnv* env, int argc, const 
   if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
     return enif_make_tuple2(env, atom_error, atom_invalid_resource);
   };
-  TAOS_MULTI_BIND* params = stmt_ptr->params;
   if(!enif_get_uint(env, argv[1], &index)){
     return enif_make_badarg(env);
   };
@@ -212,14 +213,15 @@ static ERL_NIF_TERM taos_multi_bind_set_int_nif(ErlNifEnv* env, int argc, const 
     free(buffer);
     return enif_make_badarg(env);
   };
-  int32_t* len_ptr =(int32_t*)malloc(sizeof(int32_t));
+  int32_t* len_ptr = (int32_t*)malloc(sizeof(int32_t));
   *len_ptr = intLen;
-  params[index].buffer_type = TSDB_DATA_TYPE_INT;
-  params[index].buffer_length = intLen;
-  params[index].buffer = buffer;
-  params[index].length = len_ptr;
-  params[index].is_null = 0;
-  params[index].num = 1;
+  TAOS_MULTI_BIND* params = stmt_ptr->params + index;
+  params->buffer_type = TSDB_DATA_TYPE_INT;
+  params->buffer_length = intLen;
+  params->buffer = buffer;
+  params->length = len_ptr;
+  params->is_null = 0;
+  params->num = 1;
   return atom_ok;
 }
 
@@ -232,7 +234,6 @@ static ERL_NIF_TERM taos_multi_bind_set_long_nif(ErlNifEnv* env, int argc, const
   if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
     return enif_make_tuple2(env, atom_error, atom_invalid_resource);
   };
-  TAOS_MULTI_BIND* params = stmt_ptr->params;
   if(!enif_get_uint(env, argv[1], &index)){
     return enif_make_badarg(env);
   };
@@ -241,14 +242,15 @@ static ERL_NIF_TERM taos_multi_bind_set_long_nif(ErlNifEnv* env, int argc, const
     free(buffer);
     return enif_make_badarg(env);
   };
-  int32_t* len_ptr =(int32_t*)malloc(sizeof(int32_t));
+  int32_t* len_ptr = (int32_t*)malloc(sizeof(int32_t));
   *len_ptr = bintLen;
-  params[index].buffer_type = TSDB_DATA_TYPE_BIGINT;
-  params[index].buffer_length = bintLen;
-  params[index].buffer = buffer;
-  params[index].length = len_ptr;
-  params[index].is_null = 0;
-  params[index].num = 1;
+  TAOS_MULTI_BIND* params = stmt_ptr->params + index;
+  params->buffer_type = TSDB_DATA_TYPE_BIGINT;
+  params->buffer_length = bintLen;
+  params->buffer = buffer;
+  params->length = len_ptr;
+  params->is_null = 0;
+  params->num = 1;
   return atom_ok;
 }
 
@@ -261,7 +263,6 @@ static ERL_NIF_TERM taos_multi_bind_set_short_nif(ErlNifEnv* env, int argc, cons
   if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
     return enif_make_tuple2(env, atom_error, atom_invalid_resource);
   };
-  TAOS_MULTI_BIND* params = stmt_ptr->params;
   if(!enif_get_uint(env, argv[1], &index)){
     return enif_make_badarg(env);
   };
@@ -271,14 +272,15 @@ static ERL_NIF_TERM taos_multi_bind_set_short_nif(ErlNifEnv* env, int argc, cons
   };
   int16_t* buffer = (int16_t*)malloc(sintLen);
   *buffer = (int16_t)value;
-  int32_t* len_ptr =(int32_t*)malloc(sizeof(int32_t));
+  int32_t* len_ptr = (int32_t*)malloc(sizeof(int32_t));
   *len_ptr = sintLen;
-  params[index].buffer_type = TSDB_DATA_TYPE_SMALLINT;
-  params[index].buffer_length = sintLen;
-  params[index].buffer = buffer;
-  params[index].length = len_ptr;
-  params[index].is_null = 0;
-  params[index].num = 1;
+  TAOS_MULTI_BIND* params = stmt_ptr->params + index;
+  params->buffer_type = TSDB_DATA_TYPE_SMALLINT;
+  params->buffer_length = sintLen;
+  params->buffer = buffer;
+  params->length = len_ptr;
+  params->is_null = 0;
+  params->num = 1;
   return atom_ok;
 }
 
@@ -291,7 +293,6 @@ static ERL_NIF_TERM taos_multi_bind_set_bool_nif(ErlNifEnv* env, int argc, const
   if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
     return enif_make_tuple2(env, atom_error, atom_invalid_resource);
   };
-  TAOS_MULTI_BIND* params = stmt_ptr->params;
   if(!enif_get_uint(env, argv[1], &index)){
     return enif_make_badarg(env);
   };
@@ -301,14 +302,15 @@ static ERL_NIF_TERM taos_multi_bind_set_bool_nif(ErlNifEnv* env, int argc, const
   };
   int8_t* buffer = (int8_t*)malloc(boolLen);
   *buffer = (int8_t)value;
-  int32_t* len_ptr =(int32_t*)malloc(sizeof(int32_t));
+  int32_t* len_ptr = (int32_t*)malloc(sizeof(int32_t));
   *len_ptr = boolLen;
-  params[index].buffer_type = TSDB_DATA_TYPE_TINYINT;
-  params[index].buffer_length = boolLen;
-  params[index].buffer = buffer;
-  params[index].length = len_ptr;
-  params[index].is_null = 0;
-  params[index].num = 1;
+  TAOS_MULTI_BIND* params = stmt_ptr->params + index;
+  params->buffer_type = TSDB_DATA_TYPE_TINYINT;
+  params->buffer_length = boolLen;
+  params->buffer = buffer;
+  params->length = len_ptr;
+  params->is_null = 0;
+  params->num = 1;
   return atom_ok;
 }
 
@@ -321,7 +323,6 @@ static ERL_NIF_TERM taos_multi_bind_set_float_nif(ErlNifEnv* env, int argc, cons
   if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
     return enif_make_tuple2(env, atom_error, atom_invalid_resource);
   };
-  TAOS_MULTI_BIND* params = stmt_ptr->params;
   if(!enif_get_uint(env, argv[1], &index)){
     return enif_make_badarg(env);
   };
@@ -331,14 +332,15 @@ static ERL_NIF_TERM taos_multi_bind_set_float_nif(ErlNifEnv* env, int argc, cons
   };
   float* buffer = (float*)malloc(floatLen);
   *buffer = (float)value;
-  int32_t* len_ptr =(int32_t*)malloc(sizeof(int32_t));
+  int32_t* len_ptr = (int32_t*)malloc(sizeof(int32_t));
   *len_ptr = floatLen;
-  params[index].buffer_type = TSDB_DATA_TYPE_FLOAT;
-  params[index].buffer_length = floatLen;
-  params[index].buffer = buffer;
-  params[index].length = len_ptr;
-  params[index].is_null = 0;
-  params[index].num = 1;
+  TAOS_MULTI_BIND* params = stmt_ptr->params + index;
+  params->buffer_type = TSDB_DATA_TYPE_FLOAT;
+  params->buffer_length = floatLen;
+  params->buffer = buffer;
+  params->length = len_ptr;
+  params->is_null = 0;
+  params->num = 1;
   return atom_ok;
 }
 
@@ -351,7 +353,6 @@ static ERL_NIF_TERM taos_multi_bind_set_double_nif(ErlNifEnv* env, int argc, con
   if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
     return enif_make_tuple2(env, atom_error, atom_invalid_resource);
   };
-  TAOS_MULTI_BIND* params = stmt_ptr->params;
   if(!enif_get_uint(env, argv[1], &index)){
     return enif_make_badarg(env);
   };
@@ -360,14 +361,15 @@ static ERL_NIF_TERM taos_multi_bind_set_double_nif(ErlNifEnv* env, int argc, con
     free(buffer);
     return enif_make_badarg(env);
   };
-  int32_t* len_ptr =(int32_t*)malloc(sizeof(int32_t));
+  int32_t* len_ptr = (int32_t*)malloc(sizeof(int32_t));
   *len_ptr = doubleLen;
-  params[index].buffer_type = TSDB_DATA_TYPE_DOUBLE;
-  params[index].buffer_length = doubleLen;
-  params[index].buffer = buffer;
-  params[index].length = len_ptr;
-  params[index].is_null = 0;
-  params[index].num = 1;
+  TAOS_MULTI_BIND* params = stmt_ptr->params + index;
+  params->buffer_type = TSDB_DATA_TYPE_DOUBLE;
+  params->buffer_length = doubleLen;
+  params->buffer = buffer;
+  params->length = len_ptr;
+  params->is_null = 0;
+  params->num = 1;
   return atom_ok;
 }
 
@@ -380,7 +382,6 @@ static ERL_NIF_TERM taos_multi_bind_set_varbinary_nif(ErlNifEnv* env, int argc, 
   if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
     return enif_make_tuple2(env, atom_error, atom_invalid_resource);
   };
-  TAOS_MULTI_BIND* params = stmt_ptr->params;
   if(!enif_get_uint(env, argv[1], &index)){
     return enif_make_badarg(env);
   };
@@ -389,15 +390,16 @@ static ERL_NIF_TERM taos_multi_bind_set_varbinary_nif(ErlNifEnv* env, int argc, 
     return enif_make_badarg(env);
   };
   char* buffer = (char*)malloc(bin.size);
-  int32_t* len_ptr =(int32_t*)malloc(sizeof(int32_t));
+  int32_t* len_ptr = (int32_t*)malloc(sizeof(int32_t));
   *len_ptr = bin.size;
   memcpy(buffer, bin.data, *len_ptr);
-  params[index].buffer_type = TSDB_DATA_TYPE_VARBINARY;
-  params[index].buffer_length = bin.size;
-  params[index].buffer = buffer;
-  params[index].length = len_ptr;
-  params[index].is_null = 0;
-  params[index].num = 1;
+  TAOS_MULTI_BIND* params = stmt_ptr->params + index;
+  params->buffer_type = TSDB_DATA_TYPE_VARBINARY;
+  params->buffer_length = bin.size;
+  params->buffer = buffer;
+  params->length = len_ptr;
+  params->is_null = 0;
+  params->num = 1;
   return atom_ok;
 }
 /* BASIC API TAOS */
@@ -781,6 +783,7 @@ static int init_nif(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info) {
   bintLen = sizeof(int64_t);
   floatLen = sizeof(float);
   doubleLen = sizeof(double);
+  is_null = 1;
   return 0;
 }
 

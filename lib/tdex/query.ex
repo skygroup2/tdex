@@ -2,6 +2,7 @@ defmodule Tdex.Query do
   defstruct [
     :name,
     :statement,
+    :schema
   ]
 end
 

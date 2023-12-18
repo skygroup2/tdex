@@ -26,16 +26,62 @@ defmodule Tdex.Native do
     end
   end
 
+  def statement_init(conn, sql) do
+    Wrapper.taos_stmt_init(conn, sql)
+  end
+
+  def bind_set_timestamp(stmt, index, ts) do
+    Wrapper.taos_multi_bind_set_timestamp(stmt, index, ts)
+  end
+
+  def bind_set_bool(stmt, index, v) do
+    Wrapper.taos_multi_bind_set_bool(stmt, index, v)
+  end
+
+  def bind_set_int16(stmt, index, v) do
+    Wrapper.taos_multi_bind_set_short(stmt, index, v)
+  end
+
+  def bind_set_int32(stmt, index, v) do
+    Wrapper.taos_multi_bind_set_int(stmt, index, v)
+  end
+
+  def bind_set_int64(stmt, index, v) do
+    Wrapper.taos_multi_bind_set_long(stmt, index, v)
+  end
+  def bind_set_float(stmt, index, v) do
+    Wrapper.taos_multi_bind_set_float(stmt, index, v)
+  end
+  def bind_set_double(stmt, index, v) do
+    Wrapper.taos_multi_bind_set_double(stmt, index, v)
+  end
+  def bind_set_varbinary(stmt, index, v) do
+    Wrapper.taos_multi_bind_set_varbinary(stmt, index, v)
+  end
+
+  def bind_param(stmt) do
+    Wrapper.taos_stmt_bind_param_batch(stmt)
+  end
+  
+  def execute_statement(stmt) do
+    Wrapper.taos_stmt_execute(stmt)
+  end
+
+  def close_statement(stmt) do
+    Wrapper.taos_stmt_close(stmt)
+  end
+
   def test() do
     [{:undefined, p, :supervisor, [DBConnection.ConnectionPool.Pool]}] = Process.whereis(DBConnection.ConnectionPool.Supervisor) |> Supervisor.which_children()
     [{{Tdex.DBConnection, _, _}, p1, :worker, [DBConnection.Connection]}|_] = Supervisor.which_children(p)
     {:no_state, %{state: %{conn: conn}}} = :sys.get_state(p1)
     tsNow = System.system_time(:nanosecond)
-    sql = 'insert into table_varbinary values(?, ?)'
+    # sql = 'insert into table_varbinary values(?, ?)'
+    sql = 'select * from table_varbinary where ts < ?'
     {:ok, stmt} = Wrapper.taos_stmt_init(conn, sql)
     try do
       :ok = Wrapper.taos_multi_bind_set_timestamp(stmt, 0, tsNow)
-      :ok = Wrapper.taos_multi_bind_set_varbinary(stmt, 1, "Hello tdengine")
+      # :ok = Wrapper.taos_multi_bind_set_varbinary(stmt, 1, "abcdefgh")
       :ok = Wrapper.taos_stmt_bind_param_batch(stmt)
       Wrapper.taos_stmt_execute(stmt)
     catch _, ex ->

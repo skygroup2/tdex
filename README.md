@@ -84,6 +84,12 @@ CREATE TABLE table_varbinary (ts TIMESTAMP, val VARBINARY);
       Wrapper.taos_stmt_close(stmt)
     end
 ```
+
+# bulk_insert
+tsNow = System.system_time(:nanosecond)
+sche= %{ts: {:ts, 0}, val: {:varbinary, 1}}
+data = [%{ts: tsNow, val: "record1"}, %{ts: tsNow+1, val: "record2"}, %{ts: tsNow+2, val: "record3"}]
+Tdex.execute(pid, %Tdex.Query{schema: sche, statement: 'insert into table_varbinary values(?, ?)'}, data)
 ## Features
 
 ## JSON support
