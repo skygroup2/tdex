@@ -34,8 +34,11 @@ defmodule Tdex.Native do
     Wrapper.taos_multi_bind_set_timestamp(stmt, index, ts)
   end
 
-  def bind_set_bool(stmt, index, v) do
-    Wrapper.taos_multi_bind_set_bool(stmt, index, v)
+  def bind_set_bool(stmt, index, true), do: Wrapper.taos_multi_bind_set_bool(stmt, index, 1)
+  def bind_set_bool(stmt, index, false), do: Wrapper.taos_multi_bind_set_bool(stmt, index, 0)
+
+  def bind_set_int8(stmt, index, v) do
+    Wrapper.taos_multi_bind_set_byte(stmt, index, v)
   end
 
   def bind_set_int16(stmt, index, v) do
@@ -76,12 +79,12 @@ defmodule Tdex.Native do
     [{{Tdex.DBConnection, _, _}, p1, :worker, [DBConnection.Connection]}|_] = Supervisor.which_children(p)
     {:no_state, %{state: %{conn: conn}}} = :sys.get_state(p1)
     tsNow = System.system_time(:nanosecond)
-    # sql = 'insert into table_varbinary values(?, ?)'
-    sql = 'select * from table_varbinary where ts < ?'
+    sql = 'insert into table_bool values(?, ?)'
+    # sql = 'select * from table_varbinary where ts < ?'
     {:ok, stmt} = Wrapper.taos_stmt_init(conn, sql)
     try do
       :ok = Wrapper.taos_multi_bind_set_timestamp(stmt, 0, tsNow)
-      # :ok = Wrapper.taos_multi_bind_set_varbinary(stmt, 1, "abcdefgh")
+      :ok = Wrapper.taos_multi_bind_set_bool(stmt, 1, 1)
       :ok = Wrapper.taos_stmt_bind_param_batch(stmt)
       Wrapper.taos_stmt_execute(stmt)
     catch _, ex ->

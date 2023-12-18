@@ -305,6 +305,36 @@ static ERL_NIF_TERM taos_multi_bind_set_bool_nif(ErlNifEnv* env, int argc, const
   int32_t* len_ptr = (int32_t*)malloc(sizeof(int32_t));
   *len_ptr = boolLen;
   TAOS_MULTI_BIND* params = stmt_ptr->params + index;
+  params->buffer_type = TSDB_DATA_TYPE_BOOL;
+  params->buffer_length = boolLen;
+  params->buffer = buffer;
+  params->length = len_ptr;
+  params->is_null = 0;
+  params->num = 1;
+  return atom_ok;
+}
+
+static ERL_NIF_TERM taos_multi_bind_set_byte_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if (argc != 3) {
+    return enif_make_badarg(env);
+  }
+  taos_stmt_t* stmt_ptr = NULL;
+  uint index;
+  if(!enif_get_resource(env, argv[0], TAOS_STMT_TYPE, (void**) &stmt_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+  if(!enif_get_uint(env, argv[1], &index)){
+    return enif_make_badarg(env);
+  };
+  int value;
+  if(!enif_get_int(env, argv[2], &value)){
+    return enif_make_badarg(env);
+  };
+  int8_t* buffer = (int8_t*)malloc(boolLen);
+  *buffer = (int8_t)value;
+  int32_t* len_ptr = (int32_t*)malloc(sizeof(int32_t));
+  *len_ptr = boolLen;
+  TAOS_MULTI_BIND* params = stmt_ptr->params + index;
   params->buffer_type = TSDB_DATA_TYPE_TINYINT;
   params->buffer_length = boolLen;
   params->buffer = buffer;
@@ -809,6 +839,7 @@ static ErlNifFunc nif_funcs[] = {
   {"taos_stmt_execute", 1, taos_stmt_execute_nif},
   {"taos_stmt_close", 1, taos_stmt_close_nif},
   {"taos_multi_bind_set_timestamp", 3, taos_multi_bind_set_timestamp_nif},
+  {"taos_multi_bind_set_byte", 3, taos_multi_bind_set_byte_nif},
   {"taos_multi_bind_set_int", 3, taos_multi_bind_set_int_nif},
   {"taos_multi_bind_set_long", 3, taos_multi_bind_set_long_nif},
   {"taos_multi_bind_set_short", 3, taos_multi_bind_set_short_nif},

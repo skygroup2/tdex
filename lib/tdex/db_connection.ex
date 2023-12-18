@@ -85,6 +85,7 @@ defmodule Tdex.DBConnection do
                 {:bool, idx} -> :ok = protocol.bind_set_bool(stmt, idx, v)
                 {:int32, idx} -> :ok = protocol.bind_set_int32(stmt, idx, v)
                 {:int16, idx} -> :ok = protocol.bind_set_int16(stmt, idx, v)
+                {:int8, idx} -> :ok = protocol.bind_set_int8(stmt, idx, v)
                 {:int64, idx} -> :ok = protocol.bind_set_int64(stmt, idx, v)
                 {:float, idx} -> :ok = protocol.bind_set_float(stmt, idx, v)
                 {:double, idx} -> :ok = protocol.bind_set_double(stmt, idx, v)

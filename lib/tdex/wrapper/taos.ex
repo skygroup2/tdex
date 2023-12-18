@@ -86,6 +86,9 @@ defmodule Tdex.Wrapper do
   def taos_multi_bind_set_timestamp(_stmt, _index, _ts) do
     raise "nif load fail"
   end
+  def taos_multi_bind_set_byte(_stmt, _index, _value) do
+    raise "nif load fail"
+  end
   def taos_multi_bind_set_int(_stmt, _index, _value) do
     raise "nif load fail"
   end
