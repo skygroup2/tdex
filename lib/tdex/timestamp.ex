@@ -24,6 +24,7 @@ defmodule Timestamp do
 	end
 
 	def to_unix(ts, unit\\:nanosecond)
+	def to_unix(ts, unit) when not is_struct(ts, DateTime), do: DateTime.to_unix(ts, unit)
 	def to_unix(ts, _unit) when not is_struct(ts, Timestamp), do: throw :invalid_timestamp
 	def to_unix(ts, :second) do
 		to_datetime_base_second(ts) |> DateTime.to_unix(:second)
@@ -84,6 +85,8 @@ defmodule Timestamp do
 	def diff(ts1, ts2, unit) do
 		DateTime.diff(to_datetime_base_second(ts1), to_datetime_base_second(ts2), unit)
 	end
+
+	def to_date(%{year: year, month: mon, day: day}), do: Date.new!(year, mon, day)
 
 	defp format_nano_str(ns) do
 		<<b::binary-size(3), bin::binary>> = Integer.to_string(ns) |> String.pad_leading(9, "0")
