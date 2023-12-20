@@ -9,7 +9,7 @@ defmodule Tdex.Binary do
   end
 
   def parse_block(<<_::binary-size(20), _len::32-little, rows::32-little, cols::32-little, _::binary-size(12), fields::binary-size(5*cols), blockSize::binary-size(cols*4), data::binary>>, fieldNames, precision, result) do
-    fieldNames = Enum.map(fn x -> String.to_atom(x) end)
+    fieldNames = Enum.map(fieldNames, fn x -> String.to_atom(x) end)
     {"", "", headers} =
       Enum.reduce(fieldNames, {fields, blockSize, []}, fn name, {<<type, size::32-little, rest1::binary>>, <<blockSize::32-little, rest2::binary>>, acc} ->
         {rest1, rest2, [%{type: type, size: size, block_size: blockSize, name: name}|acc]}
@@ -68,7 +68,7 @@ defmodule Tdex.Binary do
     end
   end
 
-  def parse_list1(<<>>, <<>>, _type, _precision, acc), do: Enum.reverse(acc)
+  def parse_list1(<<>>, _, _type, _precision, acc), do: Enum.reverse(acc)
   def parse_list1(<<-1::32-signed, offsets::binary>>, bin, type, precision, acc), do: parse_list1(offsets, bin, type, precision, [nil|acc])
   def parse_list1(<<_::32-signed, offsets::binary>>, bin, type, precision, acc) do
     {v, rest} = parse_type(type, bin, precision)

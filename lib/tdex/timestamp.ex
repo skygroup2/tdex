@@ -24,7 +24,7 @@ defmodule Timestamp do
 	end
 
 	def to_unix(ts, unit\\:nanosecond)
-	def to_unix(ts, unit) when not is_struct(ts, DateTime), do: DateTime.to_unix(ts, unit)
+	def to_unix(ts, unit) when is_struct(ts, DateTime), do: DateTime.to_unix(ts, unit)
 	def to_unix(ts, _unit) when not is_struct(ts, Timestamp), do: throw :invalid_timestamp
 	def to_unix(ts, :second) do
 		to_datetime_base_second(ts) |> DateTime.to_unix(:second)

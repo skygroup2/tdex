@@ -496,7 +496,7 @@ static ERL_NIF_TERM taos_connect_nif(ErlNifEnv* env, int argc, const ERL_NIF_TER
   if(taos == NULL){
     return enif_make_tuple2(env, atom_error, atom_error_connect);
   }
-
+  taos_options(TSDB_OPTION_TIMEZONE, "UTC");
   taos_ptr = (taos_t*)enif_alloc_resource(TAOS_TYPE, sizeof(taos_t));
   taos_ptr->taos = taos;
   ERL_NIF_TERM connect = enif_make_resource(env, taos_ptr);

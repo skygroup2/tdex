@@ -12,17 +12,17 @@ defmodule Tdex.Native do
 
   def query(conn, statement) do
     {:ok, res} = Wrapper.taos_query(conn, :erlang.binary_to_list(statement))
-    with {:ok, _} <- Wrapper.taos_errno(res),
-         {:ok, fields} <- Wrapper.taos_fetch_fields(res),
-         {:ok, precision} <- Wrapper.taos_result_precision(res)
-    do
+    try do
+      {:ok, 0} = Wrapper.taos_errno(res)
+      {:ok, fields} = Wrapper.taos_fetch_fields(res)
+      {:ok, precision} = Wrapper.taos_result_precision(res)
       fieldNames = Binary.parse_field(fields, [])
       Rows.read_row(res, fieldNames, precision, [])
-    else
-      {:error, _} ->
-        Wrapper.taos_free_result(res)
-        {:ok, msgErr} = Wrapper.taos_errstr(res)
-        {:error, %Tdex.Error{message: msgErr}}
+    catch _, _ex ->
+      {:ok, msgErr} = Wrapper.taos_errstr(res)
+      {:error, %Tdex.Error{message: msgErr}}
+    after
+      Wrapper.taos_free_result(res)
     end
   end
 
