@@ -103,6 +103,8 @@ defmodule Tdex.DBConnection do
           protocol.close_statement(stmt)
         end
     end
+  catch _, ex ->
+    {:error, ex, state}
   end
 
   @impl true
