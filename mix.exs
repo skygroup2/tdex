@@ -24,8 +24,8 @@ defmodule Tdex.MixProject do
         :skn_lib,
         :runtime_tools,
         :observer_cli,
-        :observer,
-        :wx
+        # :observer,
+        # :wx
       ],
     ]
   end
