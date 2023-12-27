@@ -16,6 +16,7 @@ static ERL_NIF_TERM atom_error;
 static ERL_NIF_TERM atom_invalid_resource;
 static ERL_NIF_TERM atom_excute_statement_fail;
 static ERL_NIF_TERM atom_less_memory;
+static ERL_NIF_TERM atom_error_timeout;
 
 static int32_t boolLen;
 static int32_t sintLen;
@@ -519,6 +520,21 @@ static ERL_NIF_TERM taos_close_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
   return atom_ok;
 }
 
+static ERL_NIF_TERM taos_kill_query_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  if(argc != 1) {
+    return enif_make_badarg(env);
+  }
+
+  taos_t* taos_ptr = NULL;
+
+  if(!enif_get_resource(env, argv[0], TAOS_TYPE, (void**) &taos_ptr)){
+    return enif_make_tuple2(env, atom_error, atom_invalid_resource);
+  };
+
+  taos_kill_query(taos_ptr->taos);
+  return atom_ok;
+}
+
 static ERL_NIF_TERM taos_select_db_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
   if (argc != 2) {
     return enif_make_badarg(env);
@@ -670,6 +686,14 @@ static ERL_NIF_TERM taos_fetch_raw_block_nif(ErlNifEnv* env, int argc, const ERL
   };
 
   int code = taos_fetch_raw_block(res_ptr->taos_res, &num_of_rows, &pg_data);
+  if (pg_data == NULL){
+    return enif_make_tuple2(
+      env, 
+      atom_error, 
+      atom_error_timeout
+    );
+  }
+
   if(code == 0){
     unsigned char sizeArr[9] = {0};
     int size = 0;
@@ -833,6 +857,7 @@ static int init_nif(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info) {
   atom_ok = enif_make_atom(env, "ok");
   atom_error = enif_make_atom(env, "error");  
   atom_error_connect = enif_make_atom(env, "error_connect");  
+  atom_error_timeout = enif_make_atom(env, "error_timeout");
   atom_invalid_resource = enif_make_atom(env, "invalid_resource");
   atom_excute_statement_fail = enif_make_atom(env, "exc_fail");
   atom_less_memory = enif_make_atom(env, "less_memory");
@@ -850,6 +875,7 @@ static int init_nif(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info) {
 static ErlNifFunc nif_funcs[] = {
   {"taos_connect", 5, taos_connect_nif},
   {"taos_close", 1, taos_close_nif},
+  {"taos_kill_query", 1, taos_kill_query_nif},
   {"taos_select_db", 2, taos_select_db_nif},
   {"taos_query", 2, taos_query_nif},
   {"taos_affected_rows", 1, taos_affected_rows_nif},

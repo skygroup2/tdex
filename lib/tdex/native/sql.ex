@@ -19,8 +19,8 @@ defmodule Tdex.Native do
       fieldNames = Binary.parse_field(fields, [])
       Rows.read_row(res, fieldNames, precision, [])
     catch _, _ex ->
-      {:ok, msgErr} = Wrapper.taos_errstr(res)
-      {:error, %Tdex.Error{message: msgErr}}
+      {:ok, err_msg} = Wrapper.taos_errstr(res)
+      {:error, %Tdex.Error{message: err_msg}}
     after
       Wrapper.taos_free_result(res)
     end
@@ -52,15 +52,19 @@ defmodule Tdex.Native do
   def bind_set_int64(stmt, index, v) do
     Wrapper.taos_multi_bind_set_long(stmt, index, v)
   end
+
   def bind_set_float(stmt, index, v) do
     Wrapper.taos_multi_bind_set_float(stmt, index, v)
   end
+
   def bind_set_double(stmt, index, v) do
     Wrapper.taos_multi_bind_set_double(stmt, index, v)
   end
+
   def bind_set_varbinary(stmt, index, v) do
     Wrapper.taos_multi_bind_set_varbinary(stmt, index, v)
   end
+
   def bind_set_varchar(stmt, index, v) do
     Wrapper.taos_multi_bind_set_varchar(stmt, index, v)
   end
@@ -68,7 +72,7 @@ defmodule Tdex.Native do
   def bind_param(stmt) do
     Wrapper.taos_stmt_bind_param_batch(stmt)
   end
-  
+
   def execute_statement(stmt) do
     Wrapper.taos_stmt_execute(stmt)
   end
@@ -101,5 +105,9 @@ defmodule Tdex.Native do
   def stop(conn) do
     Wrapper.taos_close(conn)
     Wrapper.taos_cleanup()
+  end
+
+  def stop_query(conn) do
+    Wrapper.taos_kill_query(conn)
   end
 end

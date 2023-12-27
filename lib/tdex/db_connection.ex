@@ -49,8 +49,8 @@ defmodule Tdex.DBConnection do
   end
 
   @impl true
-  def disconnect(_, state) do
-    state.protocol.stop(state.conn)
+  def disconnect(_error, state) do
+    state.protocol.stop_query(state.conn)
     :ok
   end
 
@@ -91,6 +91,7 @@ defmodule Tdex.DBConnection do
                 {:double, idx} -> :ok = protocol.bind_set_double(stmt, idx, v)
                 {:varbinary, idx} -> :ok = protocol.bind_set_varbinary(stmt, idx, v)
                 {:varchar, idx} -> :ok = protocol.bind_set_varchar(stmt, idx, v)
+                nil -> :ok
               end
             end)
             :ok = protocol.bind_param(stmt)

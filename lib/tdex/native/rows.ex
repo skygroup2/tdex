@@ -16,7 +16,7 @@ defmodule Tdex.Native.Rows do
         dataBlock = <<padding::binary, bin::binary>>
         result = Binary.parse_block(dataBlock, fieldNames, precision, data)
         read_row(res, fieldNames, precision, result)
-      {:error, reason} -> {:error, reason}
+      {:error, err} -> {:error, %Tdex.Error{message: to_string(err)}}
     end
   end
 end

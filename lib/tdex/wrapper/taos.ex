@@ -71,6 +71,10 @@ defmodule Tdex.Wrapper do
     raise "taos_close not implemented"
   end
 
+  def taos_kill_query(_connect) do
+    raise "taos_kill_query not implemented"
+  end
+
   def taos_stmt_init(_taos, _param_cnt) do
     raise "nif load fail"
   end
