@@ -1,4 +1,4 @@
-defmodule Tdex.MixProject do
+defmodule TDex.MixProject do
   use Mix.Project
 
   def project do
@@ -16,7 +16,7 @@ defmodule Tdex.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      mod: {Tdex, []},
+      mod: {TDex, []},
       extra_applications: [
         :logger,
         :jason,

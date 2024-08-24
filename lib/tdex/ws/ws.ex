@@ -1,7 +1,7 @@
-defmodule Tdex.WS do
-  alias Tdex.WS.{Socket}
+defmodule TDex.WS do
+  alias TDex.WS.{Socket}
   def connect(opts) do
-    GenServer.start_link(Tdex.WS.Socket, opts);
+    GenServer.start_link(TDex.WS.Socket, opts);
   end
 
   def query(conn, statement) do

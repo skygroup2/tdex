@@ -10,7 +10,7 @@ defmodule LoginTest do
     Process.flag(:trap_exit, true)
     opts = [protocol: "ws", username: "root", password: "taosdata", port: 6041]
     assert {:ok, pid} = T.start_link(opts ++ context[:options])
-    assert {:ok, %Tdex.Query{}, %T.Result{}} = T.query(pid, "SELECT 123", [])
+    assert {:ok, %TDex.Query{}, %T.Result{}} = T.query(pid, "SELECT 123", [])
     TSQL.cmd(["-s", "DROP DATABASE IF EXISTS postgrex_test;"])
   end
 

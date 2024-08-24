@@ -1,5 +1,5 @@
-defmodule Tdex.WS.Rows do
-  alias Tdex.{WS.Connection, Binary}
+defmodule TDex.WS.Rows do
+  alias TDex.{WS.Connection, Binary}
 
   def read_row(pid, dataQuery, timeout, data \\ []) do
     with {:ok, %{"completed" => false}} <- Connection.fetch(pid, dataQuery["id"], timeout),

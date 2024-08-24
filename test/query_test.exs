@@ -1,6 +1,6 @@
 defmodule QueryTest do
   use ExUnit.Case
-  import Tdex.TestHelper
+  import TDex.TestHelper
   alias Tdex, as: T
 
   setup context do

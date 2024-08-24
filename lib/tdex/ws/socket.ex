@@ -1,6 +1,6 @@
-defmodule Tdex.WS.Socket do
+defmodule TDex.WS.Socket do
   use GenServer
-  alias Tdex.{WS.Connection, WS.Rows}
+  alias TDex.{WS.Connection, WS.Rows}
 
   def init(opts) do
     opts = %{
@@ -45,14 +45,14 @@ defmodule Tdex.WS.Socket do
   end
 
   defp handle_query({:ok, %{"fields_lengths" => nil} = dataQuery}, state) do
-    result = %Tdex.Result{code: dataQuery["code"], req_id: dataQuery["req_id"], rows: [], affected_rows: dataQuery["affected_rows"], message: dataQuery["message"]}
+    result = %TDex.Result{code: dataQuery["code"], req_id: dataQuery["req_id"], rows: [], affected_rows: dataQuery["affected_rows"], message: dataQuery["message"]}
     {:reply, {:ok, result}, state, :hibernate}
   end
 
   defp handle_query({:ok, dataQuery}, state) do
     case Rows.read_row(state.pidWS, dataQuery, state.timeout) do
       {:ok, rows} ->
-        result = %Tdex.Result{code: dataQuery["code"], req_id: dataQuery["req_id"], rows: rows, affected_rows: dataQuery["affected_rows"], message: dataQuery["message"]}
+        result = %TDex.Result{code: dataQuery["code"], req_id: dataQuery["req_id"], rows: rows, affected_rows: dataQuery["affected_rows"], message: dataQuery["message"]}
         {:reply, {:ok, result}, state, :hibernate}
       {:error, _} = error -> {:reply, error, state, :hibernate}
     end

@@ -1,6 +1,6 @@
-defmodule Tdex.DBConnection do
+defmodule TDex.DBConnection do
   use DBConnection
-  alias Tdex.Common
+  alias TDex.Common
   require Logger
   require Skn.Log
 
@@ -69,7 +69,7 @@ defmodule Tdex.DBConnection do
     with {:ok, query_params} <- Common.interpolate_params(query.statement, params),
          {:ok, result} <- state.protocol.query(state.conn, query_params)
     do
-      {:ok, %Tdex.Query{name: "", statement: query_params}, result, state}
+      {:ok, %TDex.Query{name: "", statement: query_params}, result, state}
     else
       {:error, error} -> {:error, error, state}
     end

@@ -1,4 +1,4 @@
-defmodule Tdex.Binary do
+defmodule TDex.Binary do
   import Bitwise
 
   def parse_field(<<>>, result), do: Enum.reverse(result)

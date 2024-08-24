@@ -1,4 +1,4 @@
-defmodule Tdex.Ets do
+defmodule TDex.Ets do
   @name_table :tdex
   @req_id :req_id
 

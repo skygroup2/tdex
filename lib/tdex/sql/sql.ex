@@ -1,5 +1,5 @@
-defmodule Tdex.Sql do
-  alias Tdex.{Wrapper, Binary, Sql.Rows}
+defmodule TDex.Sql do
+  alias TDex.{Wrapper, Binary, Sql.Rows}
 
   def connect(opts) do
     hostname = ~c(#{opts.hostname})
@@ -21,7 +21,7 @@ defmodule Tdex.Sql do
       {:error, _} ->
         Wrapper.taos_free_result(res)
         {:ok, msgErr} = Wrapper.taos_errstr(res)
-        {:error, %Tdex.Error{message: msgErr}}
+        {:error, %TDex.Error{message: msgErr}}
     end
   end
 

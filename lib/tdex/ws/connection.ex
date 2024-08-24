@@ -1,5 +1,5 @@
-defmodule Tdex.WS.Connection do
-  import Tdex.{Ets}
+defmodule TDex.WS.Connection do
+  import TDex.{Ets}
 
   def recv_ws(timeout) do
     receive do
@@ -9,7 +9,7 @@ defmodule Tdex.WS.Connection do
         if code == 0 do
           {:ok, res}
         else
-          {:error, %Tdex.Error{code: code, message: message, action: action, req_id: req_id}}
+          {:error, %TDex.Error{code: code, message: message, action: action, req_id: req_id}}
         end
       { :gun_ws, _pid, _ref, {:binary, data} } -> {:ok, (data)}
     after timeout -> {:error, :timeout}
@@ -28,7 +28,7 @@ defmodule Tdex.WS.Connection do
       %{status_code: 101, protocols: ["websocket"]} = resp ->
         {:ok, resp[:pid]}
       _ ->
-        {:error, %Tdex.Error{message: "ws connection failed, check host or port again"}}
+        {:error, %TDex.Error{message: "ws connection failed, check host or port again"}}
     end
   catch _, ex -> {:error, ex}
   end

@@ -107,12 +107,12 @@ INSERT INTO table_varchar VALUES("2023-10-18", "hoang");
 
 TSQL.cmd(["-s", sql_insert_data], "tdex_test")
 
-defmodule Tdex.TestHelper do
+defmodule TDex.TestHelper do
   defmacro query(stat, params, opts \\ []) do
     quote do
-      case Tdex.query(var!(context)[:pid], unquote(stat), unquote(params), unquote(opts)) do
-        {:ok, %Tdex.Query{}, %Tdex.Result{rows: []}} -> :ok
-        {:ok, %Tdex.Query{}, %Tdex.Result{rows: rows}} -> rows
+      case TDex.query(var!(context)[:pid], unquote(stat), unquote(params), unquote(opts)) do
+        {:ok, %TDex.Query{}, %TDex.Result{rows: []}} -> :ok
+        {:ok, %TDex.Query{}, %TDex.Result{rows: rows}} -> rows
         {:error, err} -> err
       end
     end
@@ -120,15 +120,15 @@ defmodule Tdex.TestHelper do
 
   defmacro query!(stat, params, opts \\ []) do
     quote do
-      Tdex.query!(var!(context)[:pid], unquote(stat), unquote(params), unquote(opts))
+      TDex.query!(var!(context)[:pid], unquote(stat), unquote(params), unquote(opts))
     end
   end
 
   defmacro execute(query, params, opts \\ []) do
     quote do
-      case Tdex.execute(var!(context)[:pid], unquote(query), unquote(params), unquote(opts)) do
-        {:ok, %Tdex.Query{}, %Tdex.Result{rows: []}} -> :ok
-        {:ok, %Tdex.Query{}, %Tdex.Result{rows: rows}} -> rows
+      case TDex.execute(var!(context)[:pid], unquote(query), unquote(params), unquote(opts)) do
+        {:ok, %TDex.Query{}, %TDex.Result{rows: []}} -> :ok
+        {:ok, %TDex.Query{}, %TDex.Result{rows: rows}} -> rows
         {:error, err} -> err
       end
     end

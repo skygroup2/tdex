@@ -1,11 +1,11 @@
-defmodule Tdex.Query do
+defmodule TDex.Query do
   defstruct [
     :name,
     :statement,
   ]
 end
 
-defimpl DBConnection.Query, for: Tdex.Query do
+defimpl DBConnection.Query, for: TDex.Query do
   def decode(_query, result, _opts) do
     result
   end

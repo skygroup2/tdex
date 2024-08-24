@@ -1,4 +1,4 @@
-defmodule Tdex.Common do
+defmodule TDex.Common do
   @max_taos_sql_len 1048576
 
   def interpolate_params(query, args) do
