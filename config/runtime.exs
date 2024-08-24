@@ -12,7 +12,7 @@ if config_env() == :prod do
       filters: [
         {:sasl_domain, {&:logger_filters.domain/2, {:stop, :equal, [:otp, :sasl]}}}
       ],
-      formatter: {:logger_formatter, %{time_offset: 'Z', chars_limit: 1800, max_size: 2000, depth: 10, template: [:time, " ", :level, " ", :mfa, "_", :line, " ", :pid, " ", :msg, "\n"]}},
+      formatter: {:logger_formatter, %{time_offset: ~c"Z", chars_limit: 1800, max_size: 2000, depth: 10, template: [:time, " ", :level, " ", :mfa, "_", :line, " ", :pid, " ", :msg, "\n"]}},
       level: :debug
     }},
     {:handler, :tdex_log_sasl, :logger_std_h, %{
@@ -26,7 +26,7 @@ if config_env() == :prod do
         {:remote_gl, {&:logger_filters.remote_gl/2, :stop}},
         {:sasl_domain, {&:logger_filters.domain/2, {:log, :equal, [:otp, :sasl]}}}
       ],
-      formatter: {:logger_formatter, %{time_offset: 'Z', chars_limit: 1800, max_size: 2000, depth: 10, legacy_header: true, single_line: false}},
+      formatter: {:logger_formatter, %{time_offset: ~c"Z", chars_limit: 1800, max_size: 2000, depth: 10, legacy_header: true, single_line: false}},
       level: :notice
     }},
     {:handler, :tdex_console, :logger_std_h, %{

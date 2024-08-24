@@ -86,7 +86,7 @@ defmodule Tdex.Native do
     [{{Tdex.DBConnection, _, _}, p1, :worker, [DBConnection.Connection]}|_] = Supervisor.which_children(p)
     {:no_state, %{state: %{conn: conn}}} = :sys.get_state(p1)
     tsNow = System.system_time(:nanosecond)
-    sql = 'insert into table_varchar values(?, ?)'
+    sql = ~c"insert into table_varchar values(?, ?)"
     # sql = 'select * from table_varbinary where ts < ?'
     {:ok, stmt} = Wrapper.taos_stmt_init(conn, sql)
     try do
